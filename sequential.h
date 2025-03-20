@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <optional>
+#include <functional>
 
 template <typename T>
 class SequentialCuckoo {
@@ -15,6 +16,9 @@ public:
     void display();
 
 private:
+    std::function<int(std::optional<T>)> t1Hash;
+    std::function<int(std::optional<T>)> t2Hash;
+
     int hash1(std::optional<T> value) const;
     int hash2(std::optional<T> value) const;
     int hash3(std::optional<T> value) const;
@@ -30,11 +34,15 @@ SequentialCuckoo<T>::SequentialCuckoo(int _size) {
     maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
+    t1Hash = hash1;
+    t2Hash = hash2;
 }
 template <typename T>
 SequentialCuckoo<T>::SequentialCuckoo() {
     table1.resize(maxSize);
     table2.resize(maxSize);
+    t1Hash = [this](std::optional<T> value) { return hash1(value); };;
+    t2Hash = [this](std::optional<T> value) { return hash2(value); };;
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
@@ -43,10 +51,10 @@ bool SequentialCuckoo<T>::add(T value) {
     }
     std::optional<T> x = value;
     for(int i = 0; i < limit; i++){
-        if((x = swap(1,hash1(x), x)) == NULL){
+        if((x = swap(1,t1Hash(x), x)) == NULL){
             return true;
         }
-        else if ((x = swap(2,hash2(x), x)) == NULL){
+        else if ((x = swap(2,t2Hash(x), x)) == NULL){
             return true;
         }
     }
@@ -58,12 +66,12 @@ bool SequentialCuckoo<T>::add(T value) {
 
 template <typename T>
 bool SequentialCuckoo<T>::remove(T value) {
-    int loc = hash1(value);
+    int loc = t1Hash(value);
     if(table1[loc].has_value() && table1[loc].value() == value){
         table1[loc] = std::nullopt;
         return true;
     }
-    loc = hash2(value);
+    loc = t2Hash(value);
     if(table2[loc].has_value() && table2[loc].value() == value){
         table2[loc] = std::nullopt;
         return true;
@@ -99,10 +107,10 @@ std::optional<T> SequentialCuckoo<T>::swap(int table, int loc, std::optional<T> 
 
 template <typename T>
 bool SequentialCuckoo<T>::contains(T value) {
-    if(table1[hash1(value)] == value){
+    if(table1[t1Hash(value)] == value){
         return true;
     }
-    if(table2[hash2(value)] == value){
+    if(table2[t2Hash(value)] == value){
         return true;
     }
     return false;
