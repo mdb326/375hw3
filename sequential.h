@@ -34,15 +34,15 @@ SequentialCuckoo<T>::SequentialCuckoo(int _size) {
     maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
-    t1Hash = hash1;
-    t2Hash = hash2;
+    t1Hash = [this](std::optional<T> value) { return hash1(value); };
+    t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
 SequentialCuckoo<T>::SequentialCuckoo() {
     table1.resize(maxSize);
     table2.resize(maxSize);
-    t1Hash = [this](std::optional<T> value) { return hash1(value); };;
-    t2Hash = [this](std::optional<T> value) { return hash2(value); };;
+    t1Hash = [this](std::optional<T> value) { return hash1(value); };
+    t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
