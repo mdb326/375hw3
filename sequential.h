@@ -40,10 +40,10 @@ bool SequentialCuckoo<T>::add(T value) {
     }
     std::optional<T> x = value;
     for(int i = 0; i < limit; i++){
-        if(x = swap(0,hash1(x), x) == NULL){
+        if((x = swap(1,hash1(x), x)) == NULL){
             return true;
         }
-        else if (x = swap(1,hash2(x), x) == NULL){
+        else if ((x = swap(2,hash2(x), x)) == NULL){
             return true;
         }
     }
@@ -60,13 +60,13 @@ std::optional<T> SequentialCuckoo<T>::swap(int table, int loc, std::optional<T> 
             table1[loc] = value;
             return NULL;
         }
-        else {
+        else { 
             std::optional<T> temp = table1[loc];
             table1[loc] = value;
             return temp;
         }
     }
-    else {
+    else { //table2
         if(!table2[loc].has_value()){
             table2[loc] = value;
             return NULL;
