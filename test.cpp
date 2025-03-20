@@ -1,7 +1,7 @@
 #include "sequential.h"
 
 int main() {
-    SequentialCuckoo ds;
+    SequentialCuckoo<int> ds;
     ds.add(10);
     ds.add(20);
     ds.display();

@@ -1,6 +1,5 @@
 hw: 
-	g++ -std=c++17 -c sequential.cpp -O3 -o sequential.o
-	g++ -std=c++17 test.cpp sequential.o -o test -O3
+	g++ -std=c++17 -O3 test.cpp -o test
 
 clean: 
 	rm test
