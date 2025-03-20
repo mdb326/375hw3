@@ -1,18 +1,16 @@
-#ifndef SEQUENTIAL_H
-#define SEQUENTIAL_H
-
 #include <iostream>
 #include <vector>
 
-class DataStructure {
+class SequentialCuckoo {
 public:
-    DataStructure();
-    void insert(int value);
-    void remove(int value);
-    void display() const;
+    SequentialCuckoo();
+    SequentialCuckoo(int size);
+    void add(int value);
+    // void remove(int value);
+    void display();
 
 private:
-    std::vector<int> data;
+    std::vector<int> table1; 
+    std::vector<int> table2;
 };
 
-#endif // SEQUENTIAL_H
