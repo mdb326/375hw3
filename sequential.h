@@ -8,6 +8,7 @@ public:
     SequentialCuckoo();
     SequentialCuckoo(int _size);
     bool add(T value);
+    int size();
     bool contains(T value);
     std::optional<T> swap(int table, int loc, std::optional<T> value);
     bool remove(T value);
@@ -18,20 +19,20 @@ private:
     int hash2(std::optional<T> value) const;
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
-    int size = 10;
+    int maxSize = 10;
     int limit = 20;
 };
 
 template <typename T>
 SequentialCuckoo<T>::SequentialCuckoo(int _size) {
-    size = _size;
+    maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
 }
 template <typename T>
 SequentialCuckoo<T>::SequentialCuckoo() {
-    table1.resize(size);
-    table2.resize(size);
+    table1.resize(maxSize);
+    table2.resize(maxSize);
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
@@ -107,30 +108,46 @@ bool SequentialCuckoo<T>::contains(T value) {
 template <typename T>
 void SequentialCuckoo<T>::display() {
     std::cout << "Table 1: ";
-        for (const std::optional<T>& val : table1) {
-            if (val.has_value()) {
-                std::cout << val.value() << " ";
-            } else {
-                std::cout << "[empty] ";
-            }
+    for (const std::optional<T>& val : table1) {
+        if (val.has_value()) {
+            std::cout << val.value() << " ";
+        } else {
+            std::cout << "[empty] ";
         }
-        std::cout << "\nTable 2: ";
-        for (const std::optional<T>& val : table2) {
-            if (val.has_value()) {
-                std::cout << val.value() << " ";
-            } else {
-                std::cout << "[empty] ";
-            }
+    }
+    std::cout << "\nTable 2: ";
+    for (const std::optional<T>& val : table2) {
+        if (val.has_value()) {
+            std::cout << val.value() << " ";
+        } else {
+            std::cout << "[empty] ";
         }
-        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 }
 
 template <typename T>
 int SequentialCuckoo<T>::hash1(std::optional<T> value) const {
-    return static_cast<int>(value.value()) % size; 
+    return static_cast<int>(value.value()) % maxSize; 
 }
 
 template <typename T>
 int SequentialCuckoo<T>::hash2(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 3) % size + 3; 
+    return (static_cast<int>(value.value()) * 3) % maxSize + 3; 
+}
+
+template <typename T>
+int SequentialCuckoo<T>::size() {
+    int cnt = 0;
+    for (const std::optional<T>& val : table1) {
+        if (val.has_value()) {
+            cnt++;
+        }
+    }
+    for (const std::optional<T>& val : table2) {
+        if (val.has_value()) {
+            cnt++;
+        }
+    }
+    return cnt;
 }
