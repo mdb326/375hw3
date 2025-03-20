@@ -17,6 +17,8 @@ public:
 private:
     int hash1(std::optional<T> value) const;
     int hash2(std::optional<T> value) const;
+    int hash3(std::optional<T> value) const;
+    int hash4(std::optional<T> value) const;
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
     int maxSize = 10;
@@ -133,7 +135,16 @@ int SequentialCuckoo<T>::hash1(std::optional<T> value) const {
 
 template <typename T>
 int SequentialCuckoo<T>::hash2(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 3) % maxSize + 3; 
+    return (static_cast<int>(value.value()) * 3  + 3) % maxSize; 
+}
+
+template <typename T>
+int SequentialCuckoo<T>::hash3(std::optional<T> value) const {
+    return (static_cast<int>(value.value()) / 3 + 2) % maxSize; 
+}
+template <typename T>
+int SequentialCuckoo<T>::hash4(std::optional<T> value) const {
+    return (static_cast<int>(value.value()) * 8 / 5 + 1) % maxSize; 
 }
 
 template <typename T>
