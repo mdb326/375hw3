@@ -12,6 +12,8 @@ public:
     void display();
 
 private:
+    int hash1(T value) const;
+    int hash2(T value) const;
     std::vector<T> table1; 
     std::vector<T> table2;
     int size = 10;
@@ -36,10 +38,10 @@ bool SequentialCuckoo<T>::add(T value) {
     }
     for(int i = 0; i < limit; i++){
         /*
-        if((x = swap(0,hash0(x), x) == null){
+        if((x = swap(0,hash1(x), x) == null){
             return true;
         }
-        else if ((x = swap(1,hash1(x), x) == null)){
+        else if ((x = swap(1,hash2(x), x) == null)){
             return true;
         }
         */
@@ -51,11 +53,11 @@ bool SequentialCuckoo<T>::add(T value) {
 }
 template <typename T>
 bool SequentialCuckoo<T>::contains(T value) {
-    for (const auto& item : table1) {
-        if (item == value) return true;
+    if(table1[hash1(value)] == value){
+        return true;
     }
-    for (const auto& item : table2) {
-        if (item == value) return true;
+    if(table2[hash2(value)] == value){
+        return true;
     }
     return false;
 }
@@ -67,3 +69,12 @@ void SequentialCuckoo<T>::display() {
     std::cout << std::endl;
 }
 
+template <typename T>
+int SequentialCuckoo<T>::hash1(T value) const {
+    return static_cast<int>(value) % size; 
+}
+
+template <typename T>
+int SequentialCuckoo<T>::hash2(T value) const {
+    return static_cast<int>(value) % size + 3; 
+}
