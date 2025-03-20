@@ -23,6 +23,8 @@ private:
     int hash2(std::optional<T> value) const;
     int hash3(std::optional<T> value) const;
     int hash4(std::optional<T> value) const;
+    void resize();
+
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
     int maxSize = 10;
@@ -169,4 +171,19 @@ int SequentialCuckoo<T>::size() {
         }
     }
     return cnt;
+}
+template <typename T>
+void SequentialCuckoo<T>::resize() {
+    std::vector<T> values;
+    for (const std::optional<T>& val : table1) {
+        if (val.has_value()) {
+            values.push_back(val.value());
+        }
+    }
+    for (const std::optional<T>& val : table2) {
+        if (val.has_value()) {
+            values.push_back(val.value());
+        }
+    }
+    
 }
