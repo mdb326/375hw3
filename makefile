@@ -3,4 +3,3 @@ hw:
 
 clean: 
 	rm test
-	rm *.o
