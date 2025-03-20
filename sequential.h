@@ -5,12 +5,15 @@ class SequentialCuckoo {
 public:
     SequentialCuckoo();
     SequentialCuckoo(int size);
-    void add(int value);
+    bool add(int value);
+    bool contains(int value);
     // void remove(int value);
     void display();
 
 private:
     std::vector<int> table1; 
     std::vector<int> table2;
+    int size = 10;
+    int limit = 20;
 };
 
