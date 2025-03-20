@@ -6,7 +6,8 @@ int main() {
     ds.add(21);
     ds.add(30);
     ds.display();
-    // ds.remove(10);
-    // ds.display();
+    ds.remove(10);
+    ds.remove(30);
+    ds.display();
     return 0;
 }

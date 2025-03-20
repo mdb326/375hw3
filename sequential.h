@@ -10,7 +10,7 @@ public:
     bool add(T value);
     bool contains(T value);
     std::optional<T> swap(int table, int loc, std::optional<T> value);
-    // void remove(int value);
+    bool remove(T value);
     void display();
 
 private:
@@ -50,6 +50,21 @@ bool SequentialCuckoo<T>::add(T value) {
     //resize()
     //add(x)
     // table1.push_back(value);
+    return false;
+}
+
+template <typename T>
+bool SequentialCuckoo<T>::remove(T value) {
+    int loc = hash1(value);
+    if(table1[loc].has_value() && table1[loc].value() == value){
+        table1[loc] = std::nullopt;
+        return true;
+    }
+    loc = hash2(value);
+    if(table2[loc].has_value() && table2[loc].value() == value){
+        table2[loc] = std::nullopt;
+        return true;
+    }
     return false;
 }
 
@@ -117,5 +132,5 @@ int SequentialCuckoo<T>::hash1(std::optional<T> value) const {
 
 template <typename T>
 int SequentialCuckoo<T>::hash2(std::optional<T> value) const {
-    return static_cast<int>(value.value()) % size + 3; 
+    return (static_cast<int>(value.value()) * 3) % size + 3; 
 }
