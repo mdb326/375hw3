@@ -1,9 +1,18 @@
-#include <iostream>
+#include "sequential.h"
 
-// Entry point of the program
-int main() {
-    // Print a message to the console
-    std::cout << "Hello, World!" << std::endl;
-    
-    return 0; // Indicate successful execution
+DataStructure::DataStructure() {}
+
+void DataStructure::insert(int value) {
+    data.push_back(value);
+}
+
+void DataStructure::remove(int value) {
+    std::cout << value;
+}
+
+void DataStructure::display() const {
+    for (int val : data) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
 }
