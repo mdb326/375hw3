@@ -2,6 +2,7 @@
 #include <vector>
 #include <optional>
 #include <functional>
+#include <random>
 
 template <typename T>
 class SequentialCuckoo {
@@ -24,6 +25,8 @@ private:
     int hash3(std::optional<T> value) const;
     int hash4(std::optional<T> value) const;
     void resize(int newSize);
+    void newHashes();
+    int generateRandomInt(int min, int max);
 
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
@@ -199,4 +202,23 @@ void SequentialCuckoo<T>::resize(int newSize) {
     for(T val : values){
         add(val);
     }
+}
+template <typename T>
+void SequentialCuckoo<T>::newHashes() {
+    int hash1 = generateRandomInt(1,4);
+    int hash2 = hash1;
+    while(hash2 = hash1){
+        hash2 = generateRandomInt(1,4);
+    }
+    t1Hash = [&](std::optional<T> value) { return hash1(value); };
+    t2Hash = [&](std::optional<T> value) { return hash2(value); };
+}
+
+// Generates a random int between min and max (inclusive)
+int generateRandomInt(int min, int max) {
+    static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
+
+    return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
