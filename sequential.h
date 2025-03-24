@@ -15,6 +15,7 @@ public:
     std::optional<T> swap(int table, int loc, std::optional<T> value);
     bool remove(T value);
     void display();
+    void populate(int amt, std::function<T()> generator);
 
 private:
     std::function<int(std::optional<T>)> t1Hash;
@@ -222,4 +223,9 @@ void SequentialCuckoo<T>::newHashes() {
     t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
     t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
 }
-
+template <typename T>
+void SequentialCuckoo<T>::populate(int amt, std::function<T()> generator) {
+    for (int i = 0; i < amt; i++) {
+        while(!add(generator()));
+    }
+}
