@@ -1,6 +1,8 @@
 #include "sequential.h"
-#define SIZE 8192
-#define TESTAMT 2000000
+#include <chrono>
+
+#define SIZE 16777216
+#define TESTAMT 20000000
 
 int generateRandomVal();
 int generateRandomInteger(int min, int max);
@@ -8,6 +10,7 @@ int generateRandomInteger(int min, int max);
 int main() {
     SequentialCuckoo<int> cuckoo(SIZE);
     cuckoo.populate(SIZE/2, generateRandomVal);
+    auto begin = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < TESTAMT; i++){
         int num = generateRandomInteger(1, 10);
         if(num <= 8){
@@ -20,7 +23,9 @@ int main() {
             cuckoo.remove(generateRandomVal());
         }
     }
+    auto end = std::chrono::high_resolution_clock::now();
     std::cout << cuckoo.size() << std::endl;
+    std::cout << "TOTAL EXECUTION TIME = "<<std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"\n";
 
     return 0;
 }
