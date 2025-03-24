@@ -53,10 +53,11 @@ SequentialCuckoo<T>::SequentialCuckoo() {
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
-    dataAmt++;
-    if(dataAmt > maxSize){
-        resize(maxSize * 2);
-    }
+    // dataAmt++;
+    // if(dataAmt > maxSize){
+    //     resize(maxSize * 2);
+    // }
+    //we want to keep the amount in it right around 50%
     if(contains(value)){
         return false;
     }
