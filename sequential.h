@@ -31,7 +31,7 @@ private:
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
     int maxSize = 10;
-    int limit = 20;
+    int limit = 40;
     int dataAmt = 0;
 };
 
@@ -68,10 +68,10 @@ bool SequentialCuckoo<T>::add(T value) {
             return true;
         }
     }
-    //set new hash functions
-    //resize(maxSize)
-    //add(x)
-    // table1.push_back(value);
+    //failed to add
+    newHashes();
+    resize(maxSize);
+    add(x.value()); //guaranteed to have value since we just took it out
     return false;
 }
 
@@ -203,22 +203,23 @@ void SequentialCuckoo<T>::resize(int newSize) {
         add(val);
     }
 }
-template <typename T>
-void SequentialCuckoo<T>::newHashes() {
-    int hash1 = generateRandomInt(1,4);
-    int hash2 = hash1;
-    while(hash2 = hash1){
-        hash2 = generateRandomInt(1,4);
-    }
-    t1Hash = [&](std::optional<T> value) { return hash1(value); };
-    t2Hash = [&](std::optional<T> value) { return hash2(value); };
-}
-
 // Generates a random int between min and max (inclusive)
-int generateRandomInt(int min, int max) {
+template <typename T>
+int SequentialCuckoo<T>::generateRandomInt(int min, int max) {
     static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
     static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
 
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
+template <typename T>
+void SequentialCuckoo<T>::newHashes() {
+    int hash1 = SequentialCuckoo<T>::generateRandomInt(1,4);
+    int hash2 = hash1;
+    while(hash2 = hash1){
+        hash2 = SequentialCuckoo<T>::generateRandomInt(1,4);
+    }
+    t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
+    t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
+}
+
