@@ -23,12 +23,13 @@ private:
     int hash2(std::optional<T> value) const;
     int hash3(std::optional<T> value) const;
     int hash4(std::optional<T> value) const;
-    void resize();
+    void resize(int newSize);
 
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
     int maxSize = 10;
     int limit = 20;
+    int dataAmt = 0;
 };
 
 template <typename T>
@@ -48,6 +49,10 @@ SequentialCuckoo<T>::SequentialCuckoo() {
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
+    dataAmt++;
+    if(dataAmt > maxSize){
+        resize(maxSize * 2);
+    }
     if(contains(value)){
         return false;
     }
@@ -60,7 +65,8 @@ bool SequentialCuckoo<T>::add(T value) {
             return true;
         }
     }
-    //resize()
+    //set new hash functions
+    //resize(maxSize)
     //add(x)
     // table1.push_back(value);
     return false;
@@ -173,7 +179,8 @@ int SequentialCuckoo<T>::size() {
     return cnt;
 }
 template <typename T>
-void SequentialCuckoo<T>::resize() {
+void SequentialCuckoo<T>::resize(int newSize) {
+    maxSize = newSize;
     std::vector<T> values;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -185,5 +192,11 @@ void SequentialCuckoo<T>::resize() {
             values.push_back(val.value());
         }
     }
-    
+    table1.clear();
+    table2.clear();
+    table1.resize(newSize);
+    table2.resize(newSize);
+    for(T val : values){
+        add(val);
+    }
 }
