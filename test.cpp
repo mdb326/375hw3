@@ -16,7 +16,7 @@ int main() {
         if(num <= 8){
             cuckoo.contains(cuckoo.contains(generateRandomVal()));
         }
-        else if (num == 9){
+        else if (num <= 9){
             cuckoo.add(generateRandomVal());
         }
         else {
@@ -24,7 +24,7 @@ int main() {
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
-    std::cout << cuckoo.size() << std::endl;
+    // std::cout << cuckoo.size() << std::endl;
     std::cout << "TOTAL EXECUTION TIME = "<<std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"\n";
 
     return 0;
