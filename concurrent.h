@@ -3,6 +3,8 @@
 #include <optional>
 #include <functional>
 #include <random>
+#include <vector>
+#include <mutex>
 
 template <typename T>
 class ConcurrentCuckoo {
@@ -34,22 +36,38 @@ private:
     int maxSize = 10;
     int limit = 40;
     int dataAmt = 0;
+    std::vector<std::mutex> locks1;
+    std::vector<std::mutex> locks2;
 };
 
 template <typename T>
 ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     maxSize = _size;
+    locks1.resize(_size);
+    locks2.resize(_size);
     table1.resize(_size);
     table2.resize(_size);
     t1Hash = [this](std::optional<T> value) { return hash1(value); };
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
+
+    for(int i = 0; i < _size; i++){
+        locks1[i] = std::mutex();
+        locks2[i] = std::mutex();
+    }
 }
 template <typename T>
 ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     table1.resize(maxSize);
     table2.resize(maxSize);
+    locks1.resize(maxSize);
+    locks2.resize(maxSize);
     t1Hash = [this](std::optional<T> value) { return hash1(value); };
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
+
+    for(int i = 0; i < maxSize; i++){
+        locks1[i] = std::mutex();
+        locks2[i] = std::mutex();
+    }
 }
 template <typename T>
 bool ConcurrentCuckoo<T>::add(T value) {

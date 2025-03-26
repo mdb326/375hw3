@@ -5,7 +5,8 @@ make clean
 make hw
 
 # List of size parameters
-sizes=(128 1024 4096 32768 262144 1048576 4194304 16777216)
+# sizes=(128 1024 4096 32768 262144 1048576 4194304 16777216)
+sizes=(128)
 
 runs=10
 
