@@ -5,6 +5,9 @@
 #include <random>
 #include <vector>
 #include <mutex>
+#include <memory>
+#include <atomic>
+#include <algorithm>
 
 template <typename T>
 class ConcurrentCuckoo {
@@ -30,19 +33,27 @@ private:
     void resize(int newSize);
     void newHashes();
     int generateRandomInt(int min, int max);
+    bool relocate(int i, int hi);
 
-    std::vector<std::optional<T>> table1; 
-    std::vector<std::optional<T>> table2;
+    // static int PROBE_SIZE = 4; //CHECK THIS
+    static constexpr int PROBE_SIZE = 10;
+    std::atomic<int> capacity;// = 2; //this too
+    std::atomic<int> threshold;
+
+    std::vector<std::shared_ptr<std::vector<std::optional<T>>>> table1; 
+    std::vector<std::shared_ptr<std::vector<std::optional<T>>>> table2;
     int maxSize = 10;
     int limit = 40;
     int dataAmt = 0;
-    std::vector<std::mutex> locks1;
-    std::vector<std::mutex> locks2;
+    std::vector<std::shared_ptr<std::mutex>> locks1;
+    std::vector<std::shared_ptr<std::mutex>> locks2;
 };
 
 template <typename T>
 ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     maxSize = _size;
+    capacity = 4;
+    threshold = 2;
     locks1.resize(_size);
     locks2.resize(_size);
     table1.resize(_size);
@@ -51,12 +62,16 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
-        locks1[i] = std::mutex();
-        locks2[i] = std::mutex();
+        locks1.emplace_back(std::make_shared<std::mutex()>);
+        locks2.emplace_back(std::make_shared<std::mutex()>);
+        table1[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
+        table2[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
     }
 }
 template <typename T>
 ConcurrentCuckoo<T>::ConcurrentCuckoo() {
+    capacity = 4;
+    threshold = 2;
     table1.resize(maxSize);
     table2.resize(maxSize);
     locks1.resize(maxSize);
@@ -65,8 +80,10 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 
     for(int i = 0; i < maxSize; i++){
-        locks1[i] = std::mutex();
-        locks2[i] = std::mutex();
+        locks1.emplace_back(std::make_shared<std::mutex()>);
+        locks2.emplace_back(std::make_shared<std::mutex()>);
+        table1[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
+        table2[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
     }
 }
 template <typename T>
@@ -76,38 +93,117 @@ bool ConcurrentCuckoo<T>::add(T value) {
     //     resize(maxSize * 2);
     // }
     //we want to keep the amount in it right around 50%
-    if(contains(value)){
-        return false;
+    // acquire(value);
+    int h0 = hash0(value) % capacity, h1 = hash1(value) % capacity;
+    int i = -1, h = -1;
+    bool mustResize = false;
+
+    if (contains(value)){
+        release(value);
+        return false; // Check if value is already in the set
+    } 
+
+    auto& set0 = *table1[h0];
+    auto& set1 = *table2[h1];
+
+    if (set0.size() < threshold) {
+        set0.push_back(value);
+        release(value);
+        return true;
+    } else if (set1.size() < threshold) {
+        set1.push_back(value);
+        release(value);
+        return true;
+    } else if (set0.size() < PROBE_SIZE) {
+        set0.push_back(value);
+        i = 0;
+        h = h0;
+    } else if (set1.size() < PROBE_SIZE) {
+        set1.push_back(value);
+        i = 1;
+        h = h1;
+    } else {
+        mustResize = true;
     }
-    std::optional<T> x = value;
-    for(int i = 0; i < limit; i++){
-        if((x = swap(1,t1Hash(x), x)) == NULL){
-            return true;
-        }
-        else if ((x = swap(2,t2Hash(x), x)) == NULL){
-            return true;
-        }
+
+    if (mustResize) {
+        resize();
+        release(value);
+        return add(value);
+    } else if (!relocate(i, h)) {
+        resize();
     }
-    //failed to add
-    newHashes();
-    resize(maxSize);
-    add(x.value()); //guaranteed to have value since we just took it out
-    return false;
+    release(value);
+    return true;
 }
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
-    int loc = t1Hash(value);
-    if(table1[loc].has_value() && table1[loc].value() == value){
-        table1[loc] = std::nullopt;
+    // acquire(value);
+    auto& set0 = *table1[hash0(value) % capacity];
+    auto it0 = std::find(set0.begin(), set0.end(), value);
+    if (it0 != set0.end()) {
+        set0.erase(it0);
+        // release(value);
         return true;
+    } else {
+        auto& set1 = *table2[hash1(value) % capacity];
+        auto it1 = std::find(set1.begin(), set1.end(), value);
+        if (it1 != set1.end()) {
+            set1.erase(it1);
+            // release(value);
+            return true;
+        }
     }
-    loc = t2Hash(value);
-    if(table2[loc].has_value() && table2[loc].value() == value){
-        table2[loc] = std::nullopt;
-        return true;
-    }
+    // release(value);
     return false;
+}
+
+template <typename T>
+bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
+    int hj = 0;
+    int j = 1 - i;
+    int LIMIT = 100;
+
+    for (int round = 0; round < LIMIT; round++) {
+        auto& iSet = *table1[hi]; // Select table based on `i`
+        if (iSet.empty()) return false; // Prevent accessing an empty bucket
+
+        T value = iSet.front(); // Get the first element
+        switch (i) {
+            case 0: hj = hash1(value) % capacity; break;
+            case 1: hj = hash0(value) % capacity; break;
+        }
+
+        // acquire(value);
+        auto& jSet = *table2[hj]; // Target table based on `j`
+
+        auto it = std::find(iSet.begin(), iSet.end(), value);
+        if (it != iSet.end()) {
+            iSet.erase(it); // Remove `value` from `iSet`
+            if (jSet.size() < threshold) {
+                jSet.push_back(value);
+                // release(value);
+                return true;
+            } else if (jSet.size() < PROBE_SIZE) {
+                jSet.push_back(value);
+                i = 1 - i;
+                hi = hj;
+                j = 1 - j;
+            } else {
+                iSet.push_back(value); // Put `value` back if no space
+                // release(value);
+                return false;
+            }
+        } else if (iSet.size() >= threshold) {
+            continue; // Retry relocation
+        } else {
+            // release(value);
+            return true; // Relocation succeeded
+        }
+    }
+    // release(value);
+    return false; // If all rounds fail, relocation is unsuccessful
 }
 
 template <typename T>
