@@ -23,18 +23,20 @@ public:
     void populate(int amt, std::function<T()> generator);
 
 private:
-    std::function<int(std::optional<T>)> t1Hash;
-    std::function<int(std::optional<T>)> t2Hash;
+    std::function<int(T)> t1Hash;
+    std::function<int(T)> t2Hash;
 
-    int hash1(std::optional<T> value) const;
-    int hash2(std::optional<T> value) const;
-    int hash3(std::optional<T> value) const;
-    int hash4(std::optional<T> value) const;
+    int hash1(T) const;
+    int hash2(T) const;
+    int hash3(T) const;
+    int hash4(T) const;
     void resize(int newSize);
     void resize();
     void newHashes();
     int generateRandomInt(int min, int max);
     bool relocate(int i, int hi);
+    void acquire(T x);
+    void release(T x);
 
     // static int PROBE_SIZE = 4; //CHECK THIS
     static constexpr int PROBE_SIZE = 10;
@@ -60,8 +62,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     locks2.resize(_size);
     table1.resize(_size);
     table2.resize(_size);
-    t1Hash = [this](std::optional<T> value) { return hash1(value); };
-    t2Hash = [this](std::optional<T> value) { return hash2(value); };
+    t1Hash = [this](T value) { return hash1(value); };
+    t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
         locks1.emplace_back(std::make_shared<std::mutex>());
@@ -78,8 +80,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     table2.resize(maxSize);
     locks1.resize(maxSize);
     locks2.resize(maxSize);
-    t1Hash = [this](std::optional<T> value) { return hash1(value); };
-    t2Hash = [this](std::optional<T> value) { return hash2(value); };
+    t1Hash = [this](T value) { return hash1(value); };
+    t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < maxSize; i++){
         locks1.emplace_back(std::make_shared<std::mutex()>);
@@ -95,13 +97,13 @@ bool ConcurrentCuckoo<T>::add(T value) {
     //     resize(maxSize * 2);
     // }
     //we want to keep the amount in it right around 50%
-    // acquire(value);
-    int h0 = hash1(value) % capacity, h1 = hash2(value) % capacity;
+    acquire(value);
+    int h0 = t1Hash(value) % capacity, h1 = t2Hash(value) % capacity;
     int i = -1, h = -1;
     bool mustResize = false;
 
     if (contains(value)){
-        // release(value);
+        release(value);
         return false; // Check if value is already in the set
     } 
 
@@ -110,9 +112,11 @@ bool ConcurrentCuckoo<T>::add(T value) {
 
     if (set0.size() < threshold) {
         set0.push_back(value);
+        release(value);
         return true;
     } else if (set1.size() < threshold) {
         set1.push_back(value);
+        release(value);
         return true;
     } else if (set0.size() < PROBE_SIZE) {
         set0.push_back(value);
@@ -140,14 +144,14 @@ bool ConcurrentCuckoo<T>::add(T value) {
     // } else if (!relocate(i, h)) {
     //     resize();
     // }
-    // release(value);
+    release(value);
     return true;
 }
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
-    int h0 = hash1(value) % capacity;
-    int h1 = hash2(value) % capacity;
+    int h0 = t1Hash(value) % capacity;
+    int h1 = t2Hash(value) % capacity;
     auto& set0 = *table1[h0];
     auto it = std::remove(set0.begin(), set0.end(), value);
     if (it != set0.end()) {
@@ -177,8 +181,8 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
         T value = iSet.front();
 
         switch (i) {
-            case 0: hj = hash2(value) % capacity; break;
-            case 1: hj = hash1(value) % capacity; break;
+            case 0: hj = t2Hash(value) % capacity; break;
+            case 1: hj = t1Hash(value) % capacity; break;
         }
 
         // acquire(value);
@@ -281,22 +285,22 @@ void ConcurrentCuckoo<T>::display() {
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash1(std::optional<T> value) const {
-    return static_cast<int>(value.value()) % maxSize; 
+int ConcurrentCuckoo<T>::hash1(T value) const {
+    return static_cast<int>(value) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash2(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 3  + 3) % maxSize; 
+int ConcurrentCuckoo<T>::hash2(T value) const {
+    return (static_cast<int>(value) * 3  + 3) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash3(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) / 3 + 2) % maxSize; 
+int ConcurrentCuckoo<T>::hash3(T value) const {
+    return (static_cast<int>(value) / 3 + 2) % maxSize; 
 }
 template <typename T>
-int ConcurrentCuckoo<T>::hash4(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 8 / 5 + 1) % maxSize; 
+int ConcurrentCuckoo<T>::hash4(T value) const {
+    return (static_cast<int>(value) * 8 / 5 + 1) % maxSize; 
 }
 
 template <typename T>
@@ -412,4 +416,19 @@ void ConcurrentCuckoo<T>::resize() {
     //     l->unlock();
     // }
 }
+template <typename T>
+void ConcurrentCuckoo<T>::acquire(T x) {
+    int h0 = t1Hash(x) % locks1.size();
+    int h1 = t2Hash(x) % locks2.size();
 
+    locks1[h0]->lock();
+    locks2[h1]->lock();
+}
+template <typename T>
+void ConcurrentCuckoo<T>::release(T x) {
+    int h0 = t1Hash(x) % locks1.size();
+    int h1 = t2Hash(x) % locks2.size();
+
+    locks1[h0]->unlock();
+    locks2[h1]->unlock();
+}

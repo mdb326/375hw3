@@ -5,7 +5,7 @@
 #include <random>
 #include <cstdlib>
 
-#define TESTAMT 2000
+#define TESTAMT 200000
 
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
