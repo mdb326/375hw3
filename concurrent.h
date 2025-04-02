@@ -150,21 +150,25 @@ bool ConcurrentCuckoo<T>::add(T value) {
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
+    acquire(value);
     int h0 = t1Hash(value) % capacity;
     int h1 = t2Hash(value) % capacity;
     auto& set0 = *table1[h0];
     auto it = std::remove(set0.begin(), set0.end(), value);
     if (it != set0.end()) {
         set0.erase(it, set0.end());
+        release(value);
         return true;
     }
     auto& set1 = *table2[h1];
     auto it2 = std::remove(set1.begin(), set1.end(), value);
     if (it2 != set1.end()) {
         set1.erase(it2, set1.end());
+        release(value);
         return true;
     }
 
+    release(value);
     return false; // Not found
 }
 
@@ -179,7 +183,7 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
         auto& iSet = *table1[hi]; // Select table based on `i`
         if (iSet.empty()) return false; // Prevent accessing an empty bucket
         T value = iSet.front();
-
+        acquire(value);
         switch (i) {
             case 0: hj = t2Hash(value) % capacity; break;
             case 1: hj = t1Hash(value) % capacity; break;
@@ -190,10 +194,10 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
 
         auto it = std::find(iSet.begin(), iSet.end(), value);
         if (it != iSet.end()) {
-            iSet.erase(it); // Remove `value` from `iSet`
+            iSet.erase(it);
             if (jSet.size() < threshold) {
                 jSet.push_back(value);
-                // release(value);
+                release(value);
                 return true;
             } else if (jSet.size() < PROBE_SIZE) {
                 jSet.push_back(value);
@@ -201,18 +205,19 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
                 hi = hj;
                 j = 1 - j;
             } else {
-                iSet.push_back(value); // Put `value` back if no space
-                // release(value);
+                iSet.push_back(value); // Put value back if no space
+                release(value);
                 return false;
             }
         } else if (iSet.size() >= threshold) {
             continue; // Retry relocation
         } else {
-            // release(value);
+            release(value);
             return true; // Relocation succeeded
         }
+        release(value);
     }
-    // release(value);
+    
     return false; // If all rounds fail, relocation is unsuccessful
 }
 
@@ -244,22 +249,25 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 
 template <typename T>
 bool ConcurrentCuckoo<T>::contains(T value) {
+    acquire(value);
     auto& bucket1_ptr = table1[t1Hash(value)];
     auto& bucket2_ptr = table2[t2Hash(value)];
 
 
     for (const auto& val : *bucket1_ptr) {
         if (val == value) {
+            release(value);
             return true;
         }
     }
 
     for (const auto& val : *bucket2_ptr) {
         if (val == value) {
+            release(value);
             return true;
         }
     }
-
+    release(value);
     return false;
 }
 

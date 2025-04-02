@@ -7,6 +7,7 @@
 
 #define TESTAMT 200000
 
+
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
 
