@@ -123,18 +123,23 @@ bool ConcurrentCuckoo<T>::add(T value) {
         i = 1;
         h = h1;
     } else {
-        std::cout << "Testing3" << set0.size() << std::endl;
+        if(set0.size() < set1.size()){
+            set0.push_back(value);
+        }
+        else{
+            set1.push_back(value);
+        }
 
         mustResize = true;
     }
 
-    if (mustResize) {
-        // resize();
-        // release(value);
-        return add(value);
-    } else if (!relocate(i, h)) {
-        // resize();
-    }
+    // if (mustResize) {
+    //     resize();
+    //     // release(value);
+    //     return add(value);
+    // } else if (!relocate(i, h)) {
+    //     resize();
+    // }
     // release(value);
     return true;
 }
@@ -164,7 +169,7 @@ template <typename T>
 bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
     int hj = 0;
     int j = 1 - i;
-    int LIMIT = 100;
+    int LIMIT = 10;
 
     for (int round = 0; round < LIMIT; round++) {
         auto& iSet = *table1[hi]; // Select table based on `i`
@@ -361,12 +366,13 @@ template <typename T>
 void ConcurrentCuckoo<T>::resize() {
     int oldCapacity = capacity;
 
-    for (auto& l : locks1) {
-        l->lock();
-    }
+    // for (auto& l : locks1) {
+    //     l->lock();
+    // }
 
     //check if already resized
     if (capacity != oldCapacity) {
+        std::cout << "here?" << std::endl;
         return;
     }
 
@@ -386,6 +392,8 @@ void ConcurrentCuckoo<T>::resize() {
         table2[i] = std::make_shared<std::vector<T>>();
     }
 
+    std::cout << "Here tjo" << std::endl;
+
     for (const auto& bucket : oldTable1) {
         for (const auto& value : *bucket) {
             add(value);
@@ -398,9 +406,10 @@ void ConcurrentCuckoo<T>::resize() {
         }
     }
 
+    std::cout << "Here tjo2" << std::endl;
 
-    for (auto& l : locks1) {
-        l->unlock();
-    }
+    // for (auto& l : locks1) {
+    //     l->unlock();
+    // }
 }
 
