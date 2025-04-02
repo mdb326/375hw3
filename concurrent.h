@@ -31,6 +31,7 @@ private:
     int hash3(std::optional<T> value) const;
     int hash4(std::optional<T> value) const;
     void resize(int newSize);
+    void resize();
     void newHashes();
     int generateRandomInt(int min, int max);
     bool relocate(int i, int hi);
@@ -355,3 +356,51 @@ void ConcurrentCuckoo<T>::populate(int amt, std::function<T()> generator) {
         while(!add(generator()));
     }
 }
+
+template <typename T>
+void ConcurrentCuckoo<T>::resize() {
+    int oldCapacity = capacity;
+
+    for (auto& l : locks1) {
+        l->lock();
+    }
+
+    //check if already resized
+    if (capacity != oldCapacity) {
+        return;
+    }
+
+    //Save old tables
+    auto oldTable1 = table1;
+    auto oldTable2 = table2;
+
+    // Double the capacity
+    capacity += capacity;
+
+    // Create new tables with larger capacity
+    table1 = std::vector<std::shared_ptr<std::vector<T>>>(capacity);
+    table2 = std::vector<std::shared_ptr<std::vector<T>>>(capacity);
+
+    for (int i = 0; i < capacity; i++) {
+        table1[i] = std::make_shared<std::vector<T>>();
+        table2[i] = std::make_shared<std::vector<T>>();
+    }
+
+    for (const auto& bucket : oldTable1) {
+        for (const auto& value : *bucket) {
+            add(value);
+        }
+    }
+
+    for (const auto& bucket : oldTable2) {
+        for (const auto& value : *bucket) {
+            add(value);
+        }
+    }
+
+
+    for (auto& l : locks1) {
+        l->unlock();
+    }
+}
+
