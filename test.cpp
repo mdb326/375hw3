@@ -5,7 +5,7 @@
 #include <random>
 #include <cstdlib>
 
-#define TESTAMT 200
+#define TESTAMT 2000
 
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
@@ -22,9 +22,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // SequentialCuckoo<int> cuckoo(size);
+    SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
     cuckoo.populate(size/2, [size]() { return generateRandomVal(size); });
+    cuckooSeq.populate(size/2, [size]() { return generateRandomVal(size); });
 
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
@@ -40,7 +41,24 @@ int main(int argc, char* argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
 
     std::cout << "TOTAL EXECUTION TIME = "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
+        << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
+
+
+    auto begin1 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < TESTAMT; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= 8) {
+            cuckooSeq.contains(generateRandomVal(size));
+        } else if (num <= 9) {
+            cuckooSeq.add(generateRandomVal(size));
+        } else {
+            cuckooSeq.remove(generateRandomVal(size));
+        }
+    }
+    auto end1 = std::chrono::high_resolution_clock::now();
+
+    std::cout << "TOTAL EXECUTION TIME = "
+            << std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count() << "\n";
 
     return 0;
 }
