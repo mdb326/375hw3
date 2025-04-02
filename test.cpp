@@ -24,9 +24,8 @@ int main(int argc, char* argv[]) {
 
     // SequentialCuckoo<int> cuckoo(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    // cuckoo.populate(size / 2, [size]() { return generateRandomVal(size); });
-    std::cout << "Made it here" << std::endl;
     cuckoo.populate(size/4, [size]() { return generateRandomVal(size); });
+    std::cout << "Made it here" << std::endl;
 
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
