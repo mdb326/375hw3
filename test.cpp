@@ -33,24 +33,24 @@ int main(int argc, char* argv[]) {
     cuckooSeq.populate(size/2, [size]() { return generateRandomVal(size); });
 
     
-    // std::thread threads[THREADS];
-    // for(int i = 0; i < THREADS; i++){
-    //     threads[i] = std::thread(do_work, std::ref(cuckoo), i, TESTAMT/THREADS, size);
-    // }
+    std::thread threads[THREADS];
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_work, std::ref(cuckoo), i, TESTAMT/THREADS, size);
+    }
 
-    // for (auto &th : threads){
-    //     th.join();
-    // }
+    for (auto &th : threads){
+        th.join();
+    }
 
-    // double maxTime = 0.0;
-    // for(int i = 0; i < THREADS; i++){
-    //     if(times[i].count() > maxTime){
-    //         maxTime = times[i].count();
-    //     }
-    // }
-    // do_work(std::ref(cuckoo), 0, TESTAMT/THREADS, size);
+    double maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+    do_work(std::ref(cuckoo), 0, TESTAMT/THREADS, size);
 
-    // printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     
 
@@ -70,9 +70,9 @@ int main(int argc, char* argv[]) {
         }
     }
     auto end1 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end1 - begin1);
 
-    std::cout << "TOTAL EXECUTION TIME = "
-            << std::chrono::duration_cast<std::chrono::microseconds>(end1 - begin1).count() << "\n";
+    printf("Total Sequential time: %lf seconds\n", exec_time_i);
 
     return 0;
 }
@@ -106,5 +106,5 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
-    // times[threadNum] = exec_time_i;
+    times[threadNum] = exec_time_i;
 }
