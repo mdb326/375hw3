@@ -62,8 +62,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
-        locks1.emplace_back(std::make_shared<std::mutex()>);
-        locks2.emplace_back(std::make_shared<std::mutex()>);
+        locks1.emplace_back(std::make_shared<std::mutex>());
+        locks2.emplace_back(std::make_shared<std::mutex>());
         table1[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
         table2[i] = std::make_shared<std::vector<std::optional<T>>>(PROBE_SIZE);
     }
@@ -94,60 +94,86 @@ bool ConcurrentCuckoo<T>::add(T value) {
     // }
     //we want to keep the amount in it right around 50%
     // acquire(value);
-    int h0 = hash0(value) % capacity, h1 = hash1(value) % capacity;
+    int h0 = hash1(value) % capacity, h1 = hash2(value) % capacity;
     int i = -1, h = -1;
     bool mustResize = false;
 
     if (contains(value)){
-        release(value);
+        // release(value);
         return false; // Check if value is already in the set
     } 
 
     auto& set0 = *table1[h0];
     auto& set1 = *table2[h1];
 
-    if (set0.size() < threshold) {
-        set0.push_back(value);
-        release(value);
-        return true;
-    } else if (set1.size() < threshold) {
-        set1.push_back(value);
-        release(value);
-        return true;
-    } else if (set0.size() < PROBE_SIZE) {
-        set0.push_back(value);
-        i = 0;
-        h = h0;
-    } else if (set1.size() < PROBE_SIZE) {
-        set1.push_back(value);
-        i = 1;
-        h = h1;
+    int count0 = 0, count1 = 0;
+    for (auto& slot : set0) {
+        if (slot.has_value()) count0++;
+    }
+    for (auto& slot : set1) {
+        if (slot.has_value()) count1++;
+    }
+
+    if (count0 < threshold) {
+        for (auto& slot : set0) {
+            if (!slot.has_value()) {
+                slot = value;
+                return true;
+            }
+        }
+    } else if (count1 < threshold) {
+        for (auto& slot : set1) {
+            if (!slot.has_value()) {
+                slot = value;
+                return true;
+            }
+        }
+    } else if (count0 < PROBE_SIZE) {
+        for (auto& slot : set0) {
+            if (!slot.has_value()) {
+                slot = value;
+                i = 0;
+                h = h0;
+                break;
+            }
+        }
+    } else if (count1 < PROBE_SIZE) {
+        for (auto& slot : set1) {
+            if (!slot.has_value()) {
+                slot = value;
+                i = 1;
+                h = h1;
+                break;
+            }
+        }
     } else {
+        std::cout << "Testing3" << std::endl;
+
         mustResize = true;
     }
 
     if (mustResize) {
-        resize();
-        release(value);
+        // resize();
+        // release(value);
         return add(value);
     } else if (!relocate(i, h)) {
-        resize();
+        // resize();
     }
-    release(value);
+    // release(value);
     return true;
 }
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
     // acquire(value);
-    auto& set0 = *table1[hash0(value) % capacity];
+    auto& set0 = *table1[hash1(value) % capacity];
     auto it0 = std::find(set0.begin(), set0.end(), value);
     if (it0 != set0.end()) {
         set0.erase(it0);
         // release(value);
         return true;
     } else {
-        auto& set1 = *table2[hash1(value) % capacity];
+        auto& set1 = *table2[hash2(value) % capacity];
         auto it1 = std::find(set1.begin(), set1.end(), value);
         if (it1 != set1.end()) {
             set1.erase(it1);
@@ -167,12 +193,12 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
 
     for (int round = 0; round < LIMIT; round++) {
         auto& iSet = *table1[hi]; // Select table based on `i`
-        if (iSet.empty()) return false; // Prevent accessing an empty bucket
+        if (iSet.empty() || !iSet.front().has_value()) return false; // Prevent accessing an empty bucket
+        T value = iSet.front().value();
 
-        T value = iSet.front(); // Get the first element
         switch (i) {
-            case 0: hj = hash1(value) % capacity; break;
-            case 1: hj = hash0(value) % capacity; break;
+            case 0: hj = hash2(value) % capacity; break;
+            case 1: hj = hash1(value) % capacity; break;
         }
 
         // acquire(value);
@@ -234,14 +260,29 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 
 template <typename T>
 bool ConcurrentCuckoo<T>::contains(T value) {
-    if(table1[t1Hash(value)] == value){
-        return true;
+    auto& bucket1_ptr = table1[t1Hash(value)];
+    auto& bucket2_ptr = table2[t2Hash(value)];
+
+    // Check if the bucket exists before dereferencing
+    if (bucket1_ptr) {
+        for (const auto& opt_value : *bucket1_ptr) {
+            if (opt_value.has_value() && opt_value.value() == value) {
+                return true;
+            }
+        }
     }
-    if(table2[t2Hash(value)] == value){
-        return true;
+
+    if (bucket2_ptr) {
+        for (const auto& opt_value : *bucket2_ptr) {
+            if (opt_value.has_value() && opt_value.value() == value) {
+                return true;
+            }
+        }
     }
+
     return false;
 }
+
 template <typename T>
 void ConcurrentCuckoo<T>::display() {
     std::cout << "Table 1: ";
