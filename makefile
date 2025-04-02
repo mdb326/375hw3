@@ -1,5 +1,5 @@
 hw: 
-	g++ -std=c++17 -O3 test.cpp -o test
+	g++ -g -std=c++17 -pthread -O3 test.cpp -o test
 
 clean: 
 	rm test

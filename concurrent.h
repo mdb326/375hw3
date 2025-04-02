@@ -66,8 +66,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
-        locks1.emplace_back(std::make_shared<std::mutex>());
-        locks2.emplace_back(std::make_shared<std::mutex>());
+        locks1[i] = std::make_shared<std::mutex>();
+        locks2[i] = std::make_shared<std::mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table2[i] = std::make_shared<std::vector<T>>();
     }
@@ -84,19 +84,14 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < maxSize; i++){
-        locks1.emplace_back(std::make_shared<std::mutex()>);
-        locks2.emplace_back(std::make_shared<std::mutex()>);
+        locks1[i] = std::make_shared<std::mutex>();
+        locks2[i] = std::make_shared<std::mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table2[i] = std::make_shared<std::vector<T>>();
     }
 }
 template <typename T>
 bool ConcurrentCuckoo<T>::add(T value) {
-    // dataAmt++;
-    // if(dataAmt > maxSize){
-    //     resize(maxSize * 2);
-    // }
-    //we want to keep the amount in it right around 50%
     acquire(value);
     int h0 = t1Hash(value) % capacity, h1 = t2Hash(value) % capacity;
     int i = -1, h = -1;
@@ -249,25 +244,25 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 
 template <typename T>
 bool ConcurrentCuckoo<T>::contains(T value) {
-    acquire(value);
+    // acquire(value);
     auto& bucket1_ptr = table1[t1Hash(value)];
     auto& bucket2_ptr = table2[t2Hash(value)];
 
 
     for (const auto& val : *bucket1_ptr) {
         if (val == value) {
-            release(value);
+            // release(value);
             return true;
         }
     }
 
     for (const auto& val : *bucket2_ptr) {
         if (val == value) {
-            release(value);
+            // release(value);
             return true;
         }
     }
-    release(value);
+    // release(value);
     return false;
 }
 
@@ -351,8 +346,8 @@ void ConcurrentCuckoo<T>::resize(int newSize) {
 // Generates a random int between min and max (inclusive)
 template <typename T>
 int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
-    static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
-    static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    thread_local static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    thread_local static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
 
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
@@ -429,8 +424,13 @@ void ConcurrentCuckoo<T>::acquire(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
-    locks1[h0]->lock();
-    locks2[h1]->lock();
+    if (h0 < h1) {
+        locks1[h0]->lock();
+        locks2[h1]->lock();
+    } else {
+        locks2[h1]->lock();
+        locks1[h0]->lock();
+    }
 }
 template <typename T>
 void ConcurrentCuckoo<T>::release(T x) {

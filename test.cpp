@@ -4,12 +4,16 @@
 #include <iostream>
 #include <random>
 #include <cstdlib>
+#include <thread>
+
 
 #define TESTAMT 200000
+#define THREADS 1
 
-
+std::chrono::duration<double> times[THREADS];
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
+void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -25,24 +29,33 @@ int main(int argc, char* argv[]) {
 
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    cuckoo.populate(size/2, [size]() { return generateRandomVal(size); });
+    cuckoo.populate(1, [size]() { return generateRandomVal(size); });
     cuckooSeq.populate(size/2, [size]() { return generateRandomVal(size); });
 
-    auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < TESTAMT; i++) {
-        int num = generateRandomInteger(1, 10);
-        if (num <= 8) {
-            cuckoo.contains(generateRandomVal(size));
-        } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size));
-        } else {
-            cuckoo.remove(generateRandomVal(size));
-        }
-    }
-    auto end = std::chrono::high_resolution_clock::now();
+    
+    // std::thread threads[THREADS];
+    // for(int i = 0; i < THREADS; i++){
+    //     threads[i] = std::thread(do_work, std::ref(cuckoo), i, TESTAMT/THREADS, size);
+    // }
 
-    std::cout << "TOTAL EXECUTION TIME = "
-        << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
+    // for (auto &th : threads){
+    //     th.join();
+    // }
+
+    // double maxTime = 0.0;
+    // for(int i = 0; i < THREADS; i++){
+    //     if(times[i].count() > maxTime){
+    //         maxTime = times[i].count();
+    //     }
+    // }
+    // do_work(std::ref(cuckoo), 0, TESTAMT/THREADS, size);
+
+    // printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
+
+    
+
+    // std::cout << "TOTAL EXECUTION TIME = "
+    //     << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
 
 
     auto begin1 = std::chrono::high_resolution_clock::now();
@@ -65,15 +78,33 @@ int main(int argc, char* argv[]) {
 }
 
 int generateRandomVal(int size) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    thread_local static std::random_device rd;
+    thread_local static std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(1, size);
     return distrib(gen);
 }
 
 int generateRandomInteger(int min, int max) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib(min, max);
-    return distrib(gen);
+    thread_local static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    thread_local static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
+    std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
+
+    return distrib(gen); // Generate random number from the uniform int dist (inclusive)
+}
+
+void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < TESTAMT; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= 8) {
+            cuckoo.contains(generateRandomVal(size));
+        } else if (num <= 9) {
+            cuckoo.add(generateRandomVal(size));
+        } else {
+            cuckoo.remove(generateRandomVal(size));
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    // times[threadNum] = exec_time_i;
 }
