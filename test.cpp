@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 
     // SequentialCuckoo<int> cuckoo(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    cuckoo.populate(size/2, [size]() { return generateRandomVal(size); });
+    cuckoo.populate(size/4, [size]() { return generateRandomVal(size); });
     std::cout << "Made it here" << std::endl;
 
     auto begin = std::chrono::high_resolution_clock::now();
@@ -40,8 +40,8 @@ int main(int argc, char* argv[]) {
     }
     auto end = std::chrono::high_resolution_clock::now();
 
-    // std::cout << "TOTAL EXECUTION TIME = "
-    //           << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
+    std::cout << "TOTAL EXECUTION TIME = "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
 
     return 0;
 }
