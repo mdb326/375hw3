@@ -165,25 +165,26 @@ bool ConcurrentCuckoo<T>::add(T value) {
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
-    // acquire(value);
-    auto& set0 = *table1[hash1(value) % capacity];
-    auto it0 = std::find(set0.begin(), set0.end(), value);
-    if (it0 != set0.end()) {
-        set0.erase(it0);
-        // release(value);
-        return true;
-    } else {
-        auto& set1 = *table2[hash2(value) % capacity];
-        auto it1 = std::find(set1.begin(), set1.end(), value);
-        if (it1 != set1.end()) {
-            set1.erase(it1);
-            // release(value);
+    int h0 = hash1(value) % capacity;
+    int h1 = hash2(value) % capacity;
+    auto& set0 = *table1[h0];
+    for (auto& slot : set0) {
+        if (slot.has_value() && slot.value() == value) {
+            slot = std::nullopt; // Mark as empty
             return true;
         }
     }
-    // release(value);
-    return false;
+    auto& set1 = *table2[h1];
+    for (auto& slot : set1) {
+        if (slot.has_value() && slot.value() == value) {
+            slot = std::nullopt; // Mark as empty
+            return true;
+        }
+    }
+
+    return false; // Not found
 }
+
 
 template <typename T>
 bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
