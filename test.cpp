@@ -7,8 +7,8 @@
 #include <thread>
 
 
-#define TESTAMT 200000
-#define THREADS 1
+#define TESTAMT 20000000
+#define THREADS 16
 
 std::chrono::duration<double> times[THREADS];
 int generateRandomVal(int size);
@@ -97,7 +97,7 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
     for (int i = 0; i < TESTAMT; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
-            cuckoo.contains(generateRandomVal(size));
+            cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
             cuckoo.add(generateRandomVal(size));
         } else {

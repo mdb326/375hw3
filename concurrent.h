@@ -16,7 +16,7 @@ public:
     ConcurrentCuckoo(int _size);
     bool add(T value);
     int size();
-    bool contains(T value);
+    bool contains(T value, bool fromAdd);
     std::optional<T> swap(int table, int loc, std::optional<T> value);
     bool remove(T value);
     void display();
@@ -69,7 +69,9 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
         locks1[i] = std::make_shared<std::mutex>();
         locks2[i] = std::make_shared<std::mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
+        table1[i]->reserve(capacity);
         table2[i] = std::make_shared<std::vector<T>>();
+        table2[i]->reserve(capacity);
     }
 }
 template <typename T>
@@ -88,16 +90,18 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
         locks2[i] = std::make_shared<std::mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table2[i] = std::make_shared<std::vector<T>>();
+        table1[i]->reserve(capacity);
+        table2[i]->reserve(capacity);
     }
 }
 template <typename T>
 bool ConcurrentCuckoo<T>::add(T value) {
     acquire(value);
-    int h0 = t1Hash(value) % capacity, h1 = t2Hash(value) % capacity;
+    int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
     int i = -1, h = -1;
     bool mustResize = false;
 
-    if (contains(value)){
+    if (contains(value, true)){
         release(value);
         return false; // Check if value is already in the set
     } 
@@ -146,8 +150,8 @@ bool ConcurrentCuckoo<T>::add(T value) {
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
     acquire(value);
-    int h0 = t1Hash(value) % capacity;
-    int h1 = t2Hash(value) % capacity;
+    int h0 = t1Hash(value) % maxSize;
+    int h1 = t2Hash(value) % maxSize;
     auto& set0 = *table1[h0];
     auto it = std::remove(set0.begin(), set0.end(), value);
     if (it != set0.end()) {
@@ -180,11 +184,10 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
         T value = iSet.front();
         acquire(value);
         switch (i) {
-            case 0: hj = t2Hash(value) % capacity; break;
-            case 1: hj = t1Hash(value) % capacity; break;
+            case 0: hj = t2Hash(value) % maxSize; break;
+            case 1: hj = t1Hash(value) % maxSize; break;
         }
 
-        // acquire(value);
         auto& jSet = *table2[hj];
 
         auto it = std::find(iSet.begin(), iSet.end(), value);
@@ -243,26 +246,34 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::contains(T value) {
-    // acquire(value);
+bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
+    if(!fromAdd){
+        acquire(value);
+    }
     auto& bucket1_ptr = table1[t1Hash(value)];
     auto& bucket2_ptr = table2[t2Hash(value)];
 
 
     for (const auto& val : *bucket1_ptr) {
         if (val == value) {
-            // release(value);
+            if(!fromAdd){
+                release(value);
+            }
             return true;
         }
     }
 
     for (const auto& val : *bucket2_ptr) {
         if (val == value) {
-            // release(value);
+            if(!fromAdd){
+                release(value);
+            }
             return true;
         }
     }
-    // release(value);
+    if(!fromAdd){
+        release(value);
+    }
     return false;
 }
 
@@ -424,13 +435,10 @@ void ConcurrentCuckoo<T>::acquire(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
-    if (h0 < h1) {
-        locks1[h0]->lock();
-        locks2[h1]->lock();
-    } else {
-        locks2[h1]->lock();
-        locks1[h0]->lock();
-    }
+
+    locks1[h0]->lock();
+    locks2[h1]->lock();
+
 }
 template <typename T>
 void ConcurrentCuckoo<T>::release(T x) {
