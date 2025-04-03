@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
 #include <memory>
 #include <atomic>
 #include <algorithm>
@@ -36,6 +37,7 @@ private:
     int generateRandomInt(int min, int max);
     bool relocate(int i, int hi);
     void acquire(T x);
+    void acquireShared(T x);
     void release(T x);
 
     // static int PROBE_SIZE = 4; //CHECK THIS
@@ -49,8 +51,8 @@ private:
     int maxSize = 10;
     int limit = 40;
     int dataAmt = 0;
-    std::vector<std::shared_ptr<std::mutex>> locks1;
-    std::vector<std::shared_ptr<std::mutex>> locks2;
+    std::vector<std::shared_ptr<std::shared_mutex>> locks1;
+    std::vector<std::shared_ptr<std::shared_mutex>> locks2;
 };
 
 template <typename T>
@@ -66,8 +68,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
-        locks1[i] = std::make_shared<std::mutex>();
-        locks2[i] = std::make_shared<std::mutex>();
+        locks1[i] = std::make_shared<std::shared_mutex>();
+        locks2[i] = std::make_shared<std::shared_mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table1[i]->reserve(capacity);
         table2[i] = std::make_shared<std::vector<T>>();
@@ -86,8 +88,8 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < maxSize; i++){
-        locks1[i] = std::make_shared<std::mutex>();
-        locks2[i] = std::make_shared<std::mutex>();
+        locks1[i] = std::make_shared<std::shared_mutex>();
+        locks2[i] = std::make_shared<std::shared_mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table2[i] = std::make_shared<std::vector<T>>();
         table1[i]->reserve(capacity);
@@ -248,7 +250,7 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 template <typename T>
 bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
     if(!fromAdd){
-        acquire(value);
+        acquireShared(value);
     }
     auto& bucket1_ptr = table1[t1Hash(value)];
     auto& bucket2_ptr = table2[t2Hash(value)];
@@ -384,9 +386,9 @@ template <typename T>
 void ConcurrentCuckoo<T>::resize() {
     int oldCapacity = capacity;
 
-    // for (auto& l : locks1) {
-    //     l->lock();
-    // }
+    for (auto& l : locks1) {
+        l->lock();
+    }
 
     //check if already resized
     if (capacity != oldCapacity) {
@@ -426,9 +428,9 @@ void ConcurrentCuckoo<T>::resize() {
 
     std::cout << "Here tjo2" << std::endl;
 
-    // for (auto& l : locks1) {
-    //     l->unlock();
-    // }
+    for (auto& l : locks1) {
+        l->unlock();
+    }
 }
 template <typename T>
 void ConcurrentCuckoo<T>::acquire(T x) {
@@ -438,7 +440,14 @@ void ConcurrentCuckoo<T>::acquire(T x) {
 
     locks1[h0]->lock();
     locks2[h1]->lock();
+}
+template <typename T>
+void ConcurrentCuckoo<T>::acquireShared(T x) {
+    int h0 = t1Hash(x) % locks1.size();
+    int h1 = t2Hash(x) % locks2.size();
 
+    locks1[h0]->lock_shared();
+    locks2[h1]->lock_shared();
 }
 template <typename T>
 void ConcurrentCuckoo<T>::release(T x) {
