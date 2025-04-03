@@ -42,7 +42,6 @@ private:
     void releaseShared(T x);
 
     static constexpr int PROBE_SIZE = 10;
-    static constexpr int STRIPING = 512;
     std::atomic<int> capacity;// = 2; //this too
     std::atomic<int> threshold;
 
@@ -61,23 +60,20 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     maxSize = _size;
     capacity = 4;
     threshold = 2;
-    locks1.resize(_size/STRIPING);
-    locks2.resize(_size/STRIPING);
+    locks1.resize(_size);
+    locks2.resize(_size);
     table1.resize(_size);
     table2.resize(_size);
     t1Hash = [this](T value) { return hash1(value); };
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < _size; i++){
-        
+        locks1[i] = std::make_shared<std::shared_mutex>();
+        locks2[i] = std::make_shared<std::shared_mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table1[i]->reserve(capacity);
         table2[i] = std::make_shared<std::vector<T>>();
         table2[i]->reserve(capacity);
-    }
-    for(int i = 0; i < _size/STRIPING; i++){
-        locks1[i] = std::make_shared<std::shared_mutex>();
-        locks2[i] = std::make_shared<std::shared_mutex>();
     }
 }
 template <typename T>
@@ -86,20 +82,18 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     threshold = 2;
     table1.resize(maxSize);
     table2.resize(maxSize);
-    locks1.resize(maxSize/STRIPING);
-    locks2.resize(maxSize/STRIPING);
+    locks1.resize(maxSize);
+    locks2.resize(maxSize);
     t1Hash = [this](T value) { return hash1(value); };
     t2Hash = [this](T value) { return hash2(value); };
 
     for(int i = 0; i < maxSize; i++){
+        locks1[i] = std::make_shared<std::shared_mutex>();
+        locks2[i] = std::make_shared<std::shared_mutex>();
         table1[i] = std::make_shared<std::vector<T>>();
         table2[i] = std::make_shared<std::vector<T>>();
         table1[i]->reserve(capacity);
         table2[i]->reserve(capacity);
-    }
-    for(int i = 0; i < maxSize/STRIPING; i++){
-        locks1[i] = std::make_shared<std::shared_mutex>();
-        locks2[i] = std::make_shared<std::shared_mutex>();
     }
 }
 template <typename T>
