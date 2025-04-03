@@ -62,12 +62,11 @@ int main(int argc, char* argv[]) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckooSeq.contains(generateRandomVal(size));
+        } else if (num <= 9) {
+            cuckooSeq.add(generateRandomVal(size));
+        } else {
+            cuckooSeq.remove(generateRandomVal(size));
         }
-        // } else if (num <= 9) {
-        //     cuckooSeq.add(generateRandomVal(size));
-        // } else {
-        //     cuckooSeq.remove(generateRandomVal(size));
-        // }
     }
     auto end1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end1 - begin1);
@@ -98,12 +97,11 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
+        } else if (num <= 9) {
+            cuckoo.add(generateRandomVal(size));
+        } else {
+            cuckoo.remove(generateRandomVal(size));
         }
-        // } else if (num <= 9) {
-        //     cuckoo.add(generateRandomVal(size));
-        // } else {
-        //     cuckoo.remove(generateRandomVal(size));
-        // }
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
