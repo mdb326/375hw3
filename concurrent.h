@@ -41,7 +41,6 @@ private:
     void release(T x);
     void releaseShared(T x);
 
-    // static int PROBE_SIZE = 4; //CHECK THIS
     static constexpr int PROBE_SIZE = 10;
     std::atomic<int> capacity;// = 2; //this too
     std::atomic<int> threshold;

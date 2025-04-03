@@ -7,7 +7,7 @@
 #include <thread>
 
 
-#define TESTAMT 20000000
+#define TESTAMT 33554432
 #define THREADS 16
 
 std::chrono::duration<double> times[THREADS];
