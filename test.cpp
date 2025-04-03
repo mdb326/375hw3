@@ -8,7 +8,7 @@
 
 
 #define TESTAMT 20000000
-#define THREADS 1
+#define THREADS 16
 
 std::chrono::duration<double> times[THREADS];
 int generateRandomVal(int size);
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    cuckoo.populate(1, [size]() { return generateRandomVal(size); });
+    cuckoo.populate(size / 2, [size]() { return generateRandomVal(size); });
     cuckooSeq.populate(size/2, [size]() { return generateRandomVal(size); });
 
     
@@ -48,7 +48,6 @@ int main(int argc, char* argv[]) {
             maxTime = times[i].count();
         }
     }
-    do_work(std::ref(cuckoo), 0, TESTAMT/THREADS, size);
 
     printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
@@ -63,11 +62,12 @@ int main(int argc, char* argv[]) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckooSeq.contains(generateRandomVal(size));
-        } else if (num <= 9) {
-            cuckooSeq.add(generateRandomVal(size));
-        } else {
-            cuckooSeq.remove(generateRandomVal(size));
         }
+        // } else if (num <= 9) {
+        //     cuckooSeq.add(generateRandomVal(size));
+        // } else {
+        //     cuckooSeq.remove(generateRandomVal(size));
+        // }
     }
     auto end1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end1 - begin1);
@@ -94,7 +94,7 @@ int generateRandomInteger(int min, int max) {
 
 void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < TESTAMT; i++) {
+    for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
