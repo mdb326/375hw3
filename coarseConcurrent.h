@@ -11,10 +11,10 @@
 #include <algorithm>
 
 template <typename T>
-class ConcurrentCuckoo {
+class CoarseConcurrent {
 public:
-    ConcurrentCuckoo();
-    ConcurrentCuckoo(int _size);
+    CoarseConcurrent();
+    CoarseConcurrent(int _size);
     bool add(T value);
     int size();
     bool contains(T value, bool fromAdd);
@@ -45,7 +45,7 @@ private:
 };
 
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
+CoarseConcurrent<T>::CoarseConcurrent(int _size) {
     maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
@@ -53,14 +53,14 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo() {
+CoarseConcurrent<T>::CoarseConcurrent() {
     table1.resize(maxSize);
     table2.resize(maxSize);
     t1Hash = [this](std::optional<T> value) { return hash1(value); };
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
-bool ConcurrentCuckoo<T>::add(T value) {
+bool CoarseConcurrent<T>::add(T value) {
     // dataAmt++;
     // if(dataAmt > maxSize){
     //     resize(maxSize * 2);
@@ -91,7 +91,7 @@ bool ConcurrentCuckoo<T>::add(T value) {
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::remove(T value) {
+bool CoarseConcurrent<T>::remove(T value) {
     globalLock.lock();
     int loc = t1Hash(value);
     if(table1[loc].has_value() && table1[loc].value() == value){
@@ -110,7 +110,7 @@ bool ConcurrentCuckoo<T>::remove(T value) {
 }
 
 template <typename T>
-std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> value){
+std::optional<T> CoarseConcurrent<T>::swap(int table, int loc, std::optional<T> value){
     if(table == 1){ //go into table1 
         if(!table1[loc].has_value()){
             table1[loc] = value;
@@ -136,7 +136,7 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
+bool CoarseConcurrent<T>::contains(T value, bool fromAdd) {
     if(!fromAdd){
         globalLock.lock_shared();
     }
@@ -159,7 +159,7 @@ bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
     return false;
 }
 template <typename T>
-void ConcurrentCuckoo<T>::display() {
+void CoarseConcurrent<T>::display() {
     std::cout << "Table 1: ";
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -180,26 +180,26 @@ void ConcurrentCuckoo<T>::display() {
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash1(std::optional<T> value) const {
+int CoarseConcurrent<T>::hash1(std::optional<T> value) const {
     return static_cast<int>(value.value()) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash2(std::optional<T> value) const {
+int CoarseConcurrent<T>::hash2(std::optional<T> value) const {
     return (static_cast<int>(value.value()) * 3  + 3) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash3(std::optional<T> value) const {
+int CoarseConcurrent<T>::hash3(std::optional<T> value) const {
     return (static_cast<int>(value.value()) / 3 + 2) % maxSize; 
 }
 template <typename T>
-int ConcurrentCuckoo<T>::hash4(std::optional<T> value) const {
+int CoarseConcurrent<T>::hash4(std::optional<T> value) const {
     return (static_cast<int>(value.value()) * 8 / 5 + 1) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::size() {
+int CoarseConcurrent<T>::size() {
     int cnt = 0;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -214,7 +214,7 @@ int ConcurrentCuckoo<T>::size() {
     return cnt;
 }
 template <typename T>
-void ConcurrentCuckoo<T>::resize(int newSize) {
+void CoarseConcurrent<T>::resize(int newSize) {
     maxSize = newSize;
     std::vector<T> values;
     for (const std::optional<T>& val : table1) {
@@ -237,7 +237,7 @@ void ConcurrentCuckoo<T>::resize(int newSize) {
 }
 // Generates a random int between min and max (inclusive)
 template <typename T>
-int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
+int CoarseConcurrent<T>::generateRandomInt(int min, int max) {
     static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
     static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
@@ -245,17 +245,17 @@ int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
 template <typename T>
-void ConcurrentCuckoo<T>::newHashes() {
-    int hash1 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+void CoarseConcurrent<T>::newHashes() {
+    int hash1 = CoarseConcurrent<T>::generateRandomInt(1,4);
     int hash2 = hash1;
     while(hash2 = hash1){
-        hash2 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+        hash2 = CoarseConcurrent<T>::generateRandomInt(1,4);
     }
     t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
     t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
 }
 template <typename T>
-void ConcurrentCuckoo<T>::populate(int amt, std::function<T()> generator) {
+void CoarseConcurrent<T>::populate(int amt, std::function<T()> generator) {
     for (int i = 0; i < amt; i++) {
         while(!add(generator()));
     }

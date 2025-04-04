@@ -11,10 +11,10 @@
 #include <unordered_set>
 
 template <typename T>
-class ConcurrentCuckoo {
+class SetsConcurrent {
 public:
-    ConcurrentCuckoo();
-    ConcurrentCuckoo(int _size);
+    SetsConcurrent();
+    SetsConcurrent(int _size);
     bool add(T value);
     int size();
     bool contains(T value, bool fromAdd);
@@ -55,7 +55,7 @@ private:
 };
 
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
+SetsConcurrent<T>::SetsConcurrent(int _size) {
     maxSize = _size;
     capacity = 4;
     threshold = 2;
@@ -76,7 +76,7 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     }
 }
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo() {
+SetsConcurrent<T>::SetsConcurrent() {
     capacity = 4;
     threshold = 2;
     table1.resize(maxSize);
@@ -96,7 +96,7 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     }
 }
 template <typename T>
-bool ConcurrentCuckoo<T>::add(T value) {
+bool SetsConcurrent<T>::add(T value) {
     acquire(value);
     int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
     int i = -1, h = -1;
@@ -149,7 +149,7 @@ bool ConcurrentCuckoo<T>::add(T value) {
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::remove(T value) {
+bool SetsConcurrent<T>::remove(T value) {
     acquire(value);
     int h0 = t1Hash(value) % maxSize;
     int h1 = t2Hash(value) % maxSize;
@@ -171,7 +171,7 @@ bool ConcurrentCuckoo<T>::remove(T value) {
 
 
 template <typename T>
-bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
+bool SetsConcurrent<T>::relocate(int i, int hi) {
     int hj = 0;
     int j = 1 - i;
     int LIMIT = 10;
@@ -216,7 +216,7 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
 }
 
 template <typename T>
-std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> value){
+std::optional<T> SetsConcurrent<T>::swap(int table, int loc, std::optional<T> value){
     if(table == 1){ //go into table1 
         if(!table1[loc].has_value()){
             table1[loc] = value;
@@ -242,7 +242,7 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
+bool SetsConcurrent<T>::contains(T value, bool fromAdd) {
     if(!fromAdd){
         acquire(value);
     }
@@ -272,7 +272,7 @@ bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
 }
 
 template <typename T>
-void ConcurrentCuckoo<T>::display() {
+void SetsConcurrent<T>::display() {
     std::cout << "Table 1: ";
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -293,26 +293,26 @@ void ConcurrentCuckoo<T>::display() {
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash1(T value) const {
+int SetsConcurrent<T>::hash1(T value) const {
     return static_cast<int>(value) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash2(T value) const {
+int SetsConcurrent<T>::hash2(T value) const {
     return (static_cast<int>(value) * 3  + 3) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash3(T value) const {
+int SetsConcurrent<T>::hash3(T value) const {
     return (static_cast<int>(value) / 3 + 2) % maxSize; 
 }
 template <typename T>
-int ConcurrentCuckoo<T>::hash4(T value) const {
+int SetsConcurrent<T>::hash4(T value) const {
     return (static_cast<int>(value) * 8 / 5 + 1) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::size() {
+int SetsConcurrent<T>::size() {
     int cnt = 0;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -327,7 +327,7 @@ int ConcurrentCuckoo<T>::size() {
     return cnt;
 }
 template <typename T>
-void ConcurrentCuckoo<T>::resize(int newSize) {
+void SetsConcurrent<T>::resize(int newSize) {
     maxSize = newSize;
     std::vector<T> values;
     for (const std::optional<T>& val : table1) {
@@ -350,7 +350,7 @@ void ConcurrentCuckoo<T>::resize(int newSize) {
 }
 // Generates a random int between min and max (inclusive)
 template <typename T>
-int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
+int SetsConcurrent<T>::generateRandomInt(int min, int max) {
     thread_local static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
     thread_local static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
@@ -358,24 +358,24 @@ int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
 template <typename T>
-void ConcurrentCuckoo<T>::newHashes() {
-    int hash1 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+void SetsConcurrent<T>::newHashes() {
+    int hash1 = SetsConcurrent<T>::generateRandomInt(1,4);
     int hash2 = hash1;
     while(hash2 = hash1){
-        hash2 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+        hash2 = SetsConcurrent<T>::generateRandomInt(1,4);
     }
     t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
     t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
 }
 template <typename T>
-void ConcurrentCuckoo<T>::populate(int amt, std::function<T()> generator) {
+void SetsConcurrent<T>::populate(int amt, std::function<T()> generator) {
     for (int i = 0; i < amt; i++) {
         while(!add(generator()));
     }
 }
 
 template <typename T>
-void ConcurrentCuckoo<T>::resize() {
+void SetsConcurrent<T>::resize() {
     int oldCapacity = capacity;
 
     //dont have to lock2 since locks1 always obtained first
@@ -426,7 +426,7 @@ void ConcurrentCuckoo<T>::resize() {
     }
 }
 template <typename T>
-void ConcurrentCuckoo<T>::acquire(T x) {
+void SetsConcurrent<T>::acquire(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
@@ -436,7 +436,7 @@ void ConcurrentCuckoo<T>::acquire(T x) {
 
 }
 template <typename T>
-void ConcurrentCuckoo<T>::release(T x) {
+void SetsConcurrent<T>::release(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 

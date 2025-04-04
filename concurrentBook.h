@@ -11,10 +11,10 @@
 #include <algorithm>
 
 template <typename T>
-class ConcurrentCuckoo {
+class ConcurrentBook {
 public:
-    ConcurrentCuckoo();
-    ConcurrentCuckoo(int _size);
+    ConcurrentBook();
+    ConcurrentBook(int _size);
     bool add(T value);
     int size();
     bool contains(T value, bool fromAdd);
@@ -56,7 +56,7 @@ private:
 };
 
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
+ConcurrentBook<T>::ConcurrentBook(int _size) {
     maxSize = _size;
     capacity = 4;
     threshold = 2;
@@ -77,7 +77,7 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo(int _size) {
     }
 }
 template <typename T>
-ConcurrentCuckoo<T>::ConcurrentCuckoo() {
+ConcurrentBook<T>::ConcurrentBook() {
     capacity = 4;
     threshold = 2;
     table1.resize(maxSize);
@@ -97,7 +97,7 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
     }
 }
 template <typename T>
-bool ConcurrentCuckoo<T>::add(T value) {
+bool ConcurrentBook<T>::add(T value) {
     acquire(value);
     int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
     int i = -1, h = -1;
@@ -150,7 +150,7 @@ bool ConcurrentCuckoo<T>::add(T value) {
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::remove(T value) {
+bool ConcurrentBook<T>::remove(T value) {
     acquire(value);
     int h0 = t1Hash(value) % maxSize;
     int h1 = t2Hash(value) % maxSize;
@@ -175,7 +175,7 @@ bool ConcurrentCuckoo<T>::remove(T value) {
 
 
 template <typename T>
-bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
+bool ConcurrentBook<T>::relocate(int i, int hi) {
     int hj = 0;
     int j = 1 - i;
     int LIMIT = 10;
@@ -222,7 +222,7 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
 }
 
 template <typename T>
-std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> value){
+std::optional<T> ConcurrentBook<T>::swap(int table, int loc, std::optional<T> value){
     if(table == 1){ //go into table1 
         if(!table1[loc].has_value()){
             table1[loc] = value;
@@ -248,7 +248,7 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 }
 
 template <typename T>
-bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
+bool ConcurrentBook<T>::contains(T value, bool fromAdd) {
     if(!fromAdd){
         acquireShared(value);
     }
@@ -280,7 +280,7 @@ bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
 }
 
 template <typename T>
-void ConcurrentCuckoo<T>::display() {
+void ConcurrentBook<T>::display() {
     std::cout << "Table 1: ";
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -301,26 +301,26 @@ void ConcurrentCuckoo<T>::display() {
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash1(T value) const {
+int ConcurrentBook<T>::hash1(T value) const {
     return static_cast<int>(value) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash2(T value) const {
+int ConcurrentBook<T>::hash2(T value) const {
     return (static_cast<int>(value) * 3  + 3) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::hash3(T value) const {
+int ConcurrentBook<T>::hash3(T value) const {
     return (static_cast<int>(value) / 3 + 2) % maxSize; 
 }
 template <typename T>
-int ConcurrentCuckoo<T>::hash4(T value) const {
+int ConcurrentBook<T>::hash4(T value) const {
     return (static_cast<int>(value) * 8 / 5 + 1) % maxSize; 
 }
 
 template <typename T>
-int ConcurrentCuckoo<T>::size() {
+int ConcurrentBook<T>::size() {
     int cnt = 0;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -336,7 +336,7 @@ int ConcurrentCuckoo<T>::size() {
 }
 
 template <typename T>
-void ConcurrentCuckoo<T>::resize(int newSize) {
+void ConcurrentBook<T>::resize(int newSize) {
     maxSize = newSize;
     std::vector<T> values;
     for (const std::optional<T>& val : table1) {
@@ -359,7 +359,7 @@ void ConcurrentCuckoo<T>::resize(int newSize) {
 }
 // Generates a random int between min and max (inclusive)
 template <typename T>
-int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
+int ConcurrentBook<T>::generateRandomInt(int min, int max) {
     thread_local static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
     thread_local static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
@@ -367,24 +367,24 @@ int ConcurrentCuckoo<T>::generateRandomInt(int min, int max) {
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
 template <typename T>
-void ConcurrentCuckoo<T>::newHashes() {
-    int hash1 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+void ConcurrentBook<T>::newHashes() {
+    int hash1 = ConcurrentBook<T>::generateRandomInt(1,4);
     int hash2 = hash1;
     while(hash2 == hash1){
-        hash2 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
+        hash2 = ConcurrentBook<T>::generateRandomInt(1,4);
     }
     t1Hash = [this](T value) { return this->hash1(value); };
     t2Hash = [this](T value) { return this->hash2(value); };
 }
 template <typename T>
-void ConcurrentCuckoo<T>::populate(int amt, std::function<T()> generator) {
+void ConcurrentBook<T>::populate(int amt, std::function<T()> generator) {
     for (int i = 0; i < amt; i++) {
         while(!add(generator()));
     }
 }
 
 template <typename T>
-void ConcurrentCuckoo<T>::resize() {
+void ConcurrentBook<T>::resize() {
     int oldCapacity = capacity;
 
     for (auto& l : locks1) {
@@ -434,7 +434,7 @@ void ConcurrentCuckoo<T>::resize() {
     }
 }
 template <typename T>
-void ConcurrentCuckoo<T>::acquire(T x) {
+void ConcurrentBook<T>::acquire(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
@@ -443,7 +443,7 @@ void ConcurrentCuckoo<T>::acquire(T x) {
     locks2[h1]->lock();
 }
 template <typename T>
-void ConcurrentCuckoo<T>::acquireShared(T x) {
+void ConcurrentBook<T>::acquireShared(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
@@ -451,7 +451,7 @@ void ConcurrentCuckoo<T>::acquireShared(T x) {
     locks2[h1]->lock_shared();
 }
 template <typename T>
-void ConcurrentCuckoo<T>::release(T x) {
+void ConcurrentBook<T>::release(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
@@ -459,7 +459,7 @@ void ConcurrentCuckoo<T>::release(T x) {
     locks2[h1]->unlock();
 }
 template <typename T>
-void ConcurrentCuckoo<T>::releaseShared(T x) {
+void ConcurrentBook<T>::releaseShared(T x) {
     int h0 = t1Hash(x) % locks1.size();
     int h1 = t2Hash(x) % locks2.size();
 
