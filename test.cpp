@@ -1,5 +1,8 @@
 #include "sequential.h"
 #include "coarseConcurrent.h"
+#include "concurrentBook.h"
+#include "concurrentWithSets.h"
+#include "concurrent.h"
 #include <chrono>
 #include <iostream>
 #include <random>
@@ -14,6 +17,8 @@ std::chrono::duration<double> times[THREADS];
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
 void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size);
+void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size);
+void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -29,7 +34,11 @@ int main(int argc, char* argv[]) {
 
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
+    ConcurrentBook<int> cuckooBook(size);
+    SetsConcurrent<int> cuckooSets(size);
     cuckoo.populate(size / 2, [size]() { return generateRandomVal(size); });
+    cuckooBook.populate(size / 2, [size]() { return generateRandomVal(size); });
+    cuckooSets.populate(size / 2, [size]() { return generateRandomVal(size); });
     cuckooSeq.populate(size/2, [size]() { return generateRandomVal(size); });
 
     
@@ -49,13 +58,41 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    printf("Total %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    printf("Total Striped %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
-    
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_workBook, std::ref(cuckooBook), i, TESTAMT/THREADS, size);
+    }
 
-    // std::cout << "TOTAL EXECUTION TIME = "
-    //     << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n";
+    for (auto &th : threads){
+        th.join();
+    }
 
+    maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+
+    printf("Total Book %d Threaded time: %lf seconds\n", THREADS, maxTime);
+
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_workSets, std::ref(cuckooSets), i, TESTAMT/THREADS, size);
+    }
+
+    for (auto &th : threads){
+        th.join();
+    }
+
+    maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+
+    printf("Total Sets %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     auto begin1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
@@ -92,6 +129,38 @@ int generateRandomInteger(int min, int max) {
 }
 
 void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iter; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= 8) {
+            cuckoo.contains(generateRandomVal(size), false);
+        } else if (num <= 9) {
+            cuckoo.add(generateRandomVal(size));
+        } else {
+            cuckoo.remove(generateRandomVal(size));
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    times[threadNum] = exec_time_i;
+}
+void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size){
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iter; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= 8) {
+            cuckoo.contains(generateRandomVal(size), false);
+        } else if (num <= 9) {
+            cuckoo.add(generateRandomVal(size));
+        } else {
+            cuckoo.remove(generateRandomVal(size));
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    times[threadNum] = exec_time_i;
+}
+void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
