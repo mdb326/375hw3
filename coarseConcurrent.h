@@ -66,15 +66,19 @@ bool ConcurrentCuckoo<T>::add(T value) {
     //     resize(maxSize * 2);
     // }
     //we want to keep the amount in it right around 50%
+    globalLock.lock();
     if(contains(value, true)){
+        globalLock.unlock();
         return false;
     }
     std::optional<T> x = value;
     for(int i = 0; i < limit; i++){
         if((x = swap(1,t1Hash(x), x)) == NULL){
+            globalLock.unlock();
             return true;
         }
         else if ((x = swap(2,t2Hash(x), x)) == NULL){
+            globalLock.unlock();
             return true;
         }
     }
@@ -82,21 +86,26 @@ bool ConcurrentCuckoo<T>::add(T value) {
     newHashes();
     resize(maxSize);
     add(x.value()); //guaranteed to have value since we just took it out
+    globalLock.unlock();
     return false;
 }
 
 template <typename T>
 bool ConcurrentCuckoo<T>::remove(T value) {
+    globalLock.lock();
     int loc = t1Hash(value);
     if(table1[loc].has_value() && table1[loc].value() == value){
         table1[loc] = std::nullopt;
+        globalLock.unlock();
         return true;
     }
     loc = t2Hash(value);
     if(table2[loc].has_value() && table2[loc].value() == value){
         table2[loc] = std::nullopt;
+        globalLock.unlock();
         return true;
     }
+    globalLock.unlock();
     return false;
 }
 
@@ -128,16 +137,25 @@ std::optional<T> ConcurrentCuckoo<T>::swap(int table, int loc, std::optional<T> 
 
 template <typename T>
 bool ConcurrentCuckoo<T>::contains(T value, bool fromAdd) {
-    globalLock.lock_shared();
+    if(!fromAdd){
+        globalLock.lock_shared();
+    }
+    
     if(table1[t1Hash(value)] == value){
-        globalLock.unlock_shared();
+        if(!fromAdd){
+            globalLock.unlock_shared();
+        }
         return true;
     }
     if(table2[t2Hash(value)] == value){
-        globalLock.unlock_shared();
+        if(!fromAdd){
+            globalLock.unlock_shared();
+        }
         return true;
     }
-    globalLock.unlock_shared();
+    if(!fromAdd){
+        globalLock.unlock_shared();
+    }
     return false;
 }
 template <typename T>

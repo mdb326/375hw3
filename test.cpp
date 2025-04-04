@@ -1,5 +1,5 @@
 #include "sequential.h"
-#include "concurrent.h"
+#include "coarseConcurrent.h"
 #include <chrono>
 #include <iostream>
 #include <random>
