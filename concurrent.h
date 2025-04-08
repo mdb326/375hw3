@@ -290,7 +290,7 @@ void ConcurrentCuckoo<T>::display() {
     std::cout << "Table 1: ";
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
-            std::cout << val.value() << " ";
+            std::cout << val << " ";
         } else {
             std::cout << "[empty] ";
         }
@@ -298,7 +298,7 @@ void ConcurrentCuckoo<T>::display() {
     std::cout << "\nTable 2: ";
     for (const std::optional<T>& val : table2) {
         if (val.has_value()) {
-            std::cout << val.value() << " ";
+            std::cout << val << " ";
         } else {
             std::cout << "[empty] ";
         }
@@ -308,21 +308,28 @@ void ConcurrentCuckoo<T>::display() {
 
 template <typename T>
 int ConcurrentCuckoo<T>::hash1(T value) const {
-    return static_cast<int>(value) % maxSize; 
+    return std::hash<T>{}(value) % maxSize; 
 }
 
 template <typename T>
 int ConcurrentCuckoo<T>::hash2(T value) const {
-    return (static_cast<int>(value) * 3  + 3) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value);
+    hash ^= (hash >> 13) ^ (hash << 17);
+    return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>
 int ConcurrentCuckoo<T>::hash3(T value) const {
-    return (static_cast<int>(value) / 3 + 2) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value);
+    hash = (~hash) + (hash << 15);
+    return static_cast<int>(hash % maxSize);
 }
 template <typename T>
 int ConcurrentCuckoo<T>::hash4(T value) const {
-    return (static_cast<int>(value) * 8 / 5 + 1) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value);
+    hash ^= (hash >> 11);
+    hash += (hash << 3);
+    return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>
@@ -347,12 +354,12 @@ void ConcurrentCuckoo<T>::resize(int newSize) {
     std::vector<T> values;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
-            values.push_back(val.value());
+            values.push_back(val);
         }
     }
     for (const std::optional<T>& val : table2) {
         if (val.has_value()) {
-            values.push_back(val.value());
+            values.push_back(val);
         }
     }
     table1.clear();
@@ -379,8 +386,36 @@ void ConcurrentCuckoo<T>::newHashes() {
     while(hash2 == hash1){
         hash2 = ConcurrentCuckoo<T>::generateRandomInt(1,4);
     }
-    t1Hash = [this](T value) { return this->hash1(value); };
-    t2Hash = [this](T value) { return this->hash2(value); };
+    switch (hash1) {
+        case 1:
+            t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            break;
+        case 2:
+            t1Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            break;
+        case 3:
+            t1Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            break;
+        case 4:
+            t1Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            break;
+    }
+    
+    // Assign t2Hash using a switch on hash2
+    switch (hash2) {
+        case 1:
+            t2Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            break;
+        case 2:
+            t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            break;
+        case 3:
+            t2Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            break;
+        case 4:
+            t2Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            break;
+    }
 }
 template <typename T>
 void ConcurrentCuckoo<T>::populate(int amt, std::function<T()> generator) {

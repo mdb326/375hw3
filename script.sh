@@ -5,7 +5,8 @@ make clean
 make hw
 
 # List of size parameters
-sizes=(1024 4096 32768 262144 1048576 4194304 16777216)
+# sizes=(1024 4096 32768 262144 1048576 4194304 16777216)
+sizes=(32768)
 
 # Loop over sizes
 for size in "${sizes[@]}"; do

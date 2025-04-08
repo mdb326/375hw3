@@ -32,7 +32,7 @@ private:
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
     int maxSize = 10;
-    int limit = 40;
+    int limit = 400;
     int dataAmt = 0;
 };
 
@@ -53,10 +53,10 @@ SequentialCuckoo<T>::SequentialCuckoo() {
 }
 template <typename T>
 bool SequentialCuckoo<T>::add(T value) {
-    // dataAmt++;
-    // if(dataAmt > maxSize){
-    //     resize(maxSize * 2);
-    // }
+    dataAmt++;
+    if(dataAmt > maxSize/2){
+        resize(maxSize * 2);
+    }
     //we want to keep the amount in it right around 50%
     if(contains(value)){
         return false;
@@ -151,21 +151,28 @@ void SequentialCuckoo<T>::display() {
 
 template <typename T>
 int SequentialCuckoo<T>::hash1(std::optional<T> value) const {
-    return static_cast<int>(value.value()) % maxSize; 
+    return std::hash<T>{}(value.value()) % maxSize; 
 }
 
 template <typename T>
 int SequentialCuckoo<T>::hash2(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 3  + 3) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value.value());
+    hash ^= (hash >> 13) ^ (hash << 17);
+    return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>
 int SequentialCuckoo<T>::hash3(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) / 3 + 2) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value.value());
+    hash = (~hash) + (hash << 15);
+    return static_cast<int>(hash % maxSize);
 }
 template <typename T>
 int SequentialCuckoo<T>::hash4(std::optional<T> value) const {
-    return (static_cast<int>(value.value()) * 8 / 5 + 1) % maxSize; 
+    unsigned int hash = std::hash<T>{}(value.value());
+    hash ^= (hash >> 11);
+    hash += (hash << 3);
+    return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>
@@ -218,11 +225,39 @@ template <typename T>
 void SequentialCuckoo<T>::newHashes() {
     int hash1 = SequentialCuckoo<T>::generateRandomInt(1,4);
     int hash2 = hash1;
-    while(hash2 = hash1){
+    while(hash2 == hash1){
         hash2 = SequentialCuckoo<T>::generateRandomInt(1,4);
     }
-    t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
-    t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
+    switch (hash1) {
+        case 1:
+            t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            break;
+        case 2:
+            t1Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            break;
+        case 3:
+            t1Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            break;
+        case 4:
+            t1Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            break;
+    }
+    
+    // Assign t2Hash using a switch on hash2
+    switch (hash2) {
+        case 1:
+            t2Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            break;
+        case 2:
+            t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            break;
+        case 3:
+            t2Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            break;
+        case 4:
+            t2Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            break;
+    }
 }
 template <typename T>
 void SequentialCuckoo<T>::populate(int amt, std::function<T()> generator) {
