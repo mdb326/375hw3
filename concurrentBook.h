@@ -138,13 +138,13 @@ bool ConcurrentBook<T>::add(T value) {
         mustResize = true;
     }
 
-    // if (mustResize) {
-    //     resize();
-    //     // release(value);
-    //     return add(value);
-    // } else if (!relocate(i, h)) {
-    //     resize();
-    // }
+    if (mustResize) {
+        resize();
+        // release(value);
+        return add(value);
+    } else if (!relocate(i, h)) {
+        resize();
+    }
     release(value);
     return true;
 }

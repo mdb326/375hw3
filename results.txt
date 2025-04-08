@@ -4,3 +4,23 @@ Running with size = 32768
 Running with size = 32768
 HERE1
 HERE2
+Running with size = 32768
+HERE1
+HERE2
+HERE1
+HERE3
+HERE1
+Total Striped 16 Threaded time: 0.775083 seconds
+Total Book 16 Threaded time: 0.328305 seconds
+Total Sets 16 Threaded time: 0.345371 seconds
+Total Sequential time: 1.031274 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.776320 seconds
+Total Book 16 Threaded time: 0.313628 seconds
+Total Sets 16 Threaded time: 0.364010 seconds
+Total Sequential time: 1.051558 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.806109 seconds
+Total Book 16 Threaded time: 0.315993 seconds
+Total Sets 16 Threaded time: 0.349474 seconds
+Total Sequential time: 1.063939 seconds

@@ -37,16 +37,10 @@ int main(int argc, char* argv[]) {
     ConcurrentBook<int> cuckooBook(size);
     SetsConcurrent<int> cuckooSets(size);
     int startingSize = size;
-    std::cout << "HERE1" << std::endl;
     cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    std::cout << "HERE2" << std::endl;
     cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    std::cout << "HERE1" << std::endl;
     cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    std::cout << "HERE3" << std::endl;
     cuckooSeq.populate(startingSize/3, [size]() { return generateRandomVal(size*4); });
-    std::cout << "HERE1" << std::endl;
-
     
     std::thread threads[THREADS];
     for(int i = 0; i < THREADS; i++){
