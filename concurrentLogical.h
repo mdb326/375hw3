@@ -155,10 +155,11 @@ bool LogicalCuckoo<T>::add(T value) {
     }
 
     if (mustResize) {
-        resize();
         release(value);
+        resize();
         return add(value);
     } else if (!relocate(i, h)) {
+        release(value);
         resize();
     }
     release(value);

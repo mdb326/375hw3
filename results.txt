@@ -90,3 +90,50 @@ Total Striped 16 Threaded time: 0.781246 seconds
 Total Book 16 Threaded time: 0.322679 seconds
 Total Sets 16 Threaded time: 0.406300 seconds
 Total Sequential time: 1.081882 seconds
+Running with size = 32768
+Running with size = 32768
+Total Striped 16 Threaded time: 0.809566 seconds
+Total Book 16 Threaded time: 0.313651 seconds
+Total Sets 16 Threaded time: 0.351654 seconds
+Total Sequential time: 0.935650 seconds
+Running with size = 32768
+Running with size = 32768
+Total Striped 16 Threaded time: 0.797126 seconds
+Total Book 16 Threaded time: 0.321718 seconds
+Total Sets 16 Threaded time: 0.353360 seconds
+Total Sequential time: 1.037789 seconds
+Running with size = 32768
+Here tjo
+Running with size = 32768
+Running with size = 32768
+Running with size = 32768
+Total Striped 16 Threaded time: 0.780607 seconds
+Total Book 16 Threaded time: 0.322398 seconds
+Total Sets 16 Threaded time: 0.356872 seconds
+Total Sequential time: 0.958627 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.777648 seconds
+Total Book 16 Threaded time: 0.309027 seconds
+Total Sets 16 Threaded time: 0.357262 seconds
+Total Sequential time: 0.918812 seconds
+Running with size = 32768
+Running with size = 32768
+Total Striped 16 Threaded time: 0.785757 seconds
+Total Book 16 Threaded time: 0.311630 seconds
+Total Sets 16 Threaded time: 0.354590 seconds
+Total Sequential time: 0.896509 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.780572 seconds
+Total Book 16 Threaded time: 0.314651 seconds
+Total Sets 16 Threaded time: 0.358454 seconds
+Total Sequential time: 0.966194 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.810450 seconds
+Total Book 16 Threaded time: 0.318806 seconds
+Total Sets 16 Threaded time: 0.358384 seconds
+Total Sequential time: 0.979627 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.796647 seconds
+Total Book 16 Threaded time: 0.315216 seconds
+Total Sets 16 Threaded time: 0.359849 seconds
+Total Sequential time: 0.971055 seconds
