@@ -1,7 +1,8 @@
 #include "sequential.h"
-#include "coarseConcurrent.h"
+// #include "coarseConcurrent.h"
 #include "concurrentBook.h"
 #include "concurrentWithSets.h"
+#include "concurrentLogical.h"
 #include "concurrent.h"
 #include <chrono>
 #include <iostream>
@@ -36,10 +37,12 @@ int main(int argc, char* argv[]) {
     ConcurrentCuckoo<int> cuckoo(size);
     ConcurrentBook<int> cuckooBook(size);
     SetsConcurrent<int> cuckooSets(size);
+    LogicalCuckoo<int> cuckooLogical(size);
     int startingSize = size;
     cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooSeq.populate(startingSize/3, [size]() { return generateRandomVal(size*4); });
     
     std::thread threads[THREADS];
