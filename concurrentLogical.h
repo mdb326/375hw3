@@ -489,6 +489,7 @@ void LogicalCuckoo<T>::resize() {
 
     bool resizing = true;
     while(resizing){
+        resizing = false;
         //Save old tables
         auto oldTable1 = table1;
         auto oldTable2 = table2;
@@ -499,7 +500,7 @@ void LogicalCuckoo<T>::resize() {
         table1 = std::vector<std::shared_ptr<std::vector<T>>>(maxSize);
         table2 = std::vector<std::shared_ptr<std::vector<T>>>(maxSize);
 
-        for (int i = 0; i < capacity; i++) {
+        for (int i = 0; i < maxSize; i++) {
             table1[i] = std::make_shared<std::vector<T>>();
             table2[i] = std::make_shared<std::vector<T>>();
         }
@@ -507,7 +508,7 @@ void LogicalCuckoo<T>::resize() {
         std::cout << "Here tjo: " << maxSize << std::endl;
 
         for (const auto& bucket : oldTable1) {
-            if (!bucket) continue; //New buckets
+            if (!bucket) continue; //New buckets if resizing twice
             for (const auto& value : *bucket) {
                 if(!add_safe(value)){
                     resizing = true;
