@@ -147,7 +147,6 @@ bool ConcurrentCuckoo<T>::add(T value) {
     if (mustResize) {
         release(value);
         resize();
-        
         return add(value);
     } else if (!relocate(i, h)) {
         release(value);

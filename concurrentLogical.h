@@ -33,9 +33,11 @@ private:
     int hash4(T) const;
     void resize(int newSize);
     void resize();
+    bool add_safe(T value);
     void newHashes();
     int generateRandomInt(int min, int max);
     bool relocate(int i, int hi);
+    bool relocate_safe(int i, int hi);
     void acquire(T x);
     void acquireShared(T x);
     void release(T x);
@@ -158,7 +160,7 @@ bool LogicalCuckoo<T>::add(T value) {
         release(value);
         resize();
         return add(value);
-    } else if (!relocate(i, h)) {
+    } else if (!relocate(i, h)) { // look at this
         release(value);
         resize();
     }
@@ -198,7 +200,7 @@ bool LogicalCuckoo<T>::relocate(int i, int hi) {
     int LIMIT = 10;
 
     for (int round = 0; round < LIMIT; round++) {
-        auto& iSet = *table1[hi]; // Select table based on `i`
+        auto& iSet = *table1[hi];
         if (iSet.empty()) return false; // Prevent accessing an empty bucket
         T value = iSet.front();
         acquire(value);
@@ -233,6 +235,48 @@ bool LogicalCuckoo<T>::relocate(int i, int hi) {
             return true; // Relocation succeeded
         }
         release(value);
+    }
+    
+    return false; // If all rounds fail, relocation is unsuccessful
+}
+
+template <typename T>
+bool LogicalCuckoo<T>::relocate_safe(int i, int hi) {
+    int hj = 0;
+    int j = 1 - i;
+    int LIMIT = 10;
+
+    for (int round = 0; round < LIMIT; round++) {
+        auto& iSet = *table1[hi];
+        if (iSet.empty()) return false; // Prevent accessing an empty bucket
+        T value = iSet.front();
+        switch (i) {
+            case 0: hj = t2Hash(value) % maxSize; break;
+            case 1: hj = t1Hash(value) % maxSize; break;
+        }
+
+        auto& jSet = *table2[hj];
+
+        auto it = std::find(iSet.begin(), iSet.end(), value);
+        if (it != iSet.end()) {
+            iSet.erase(it);
+            if (jSet.size() < threshold) {
+                jSet.push_back(value);
+                return true;
+            } else if (jSet.size() < PROBE_SIZE) {
+                jSet.push_back(value);
+                i = 1 - i;
+                hi = hj;
+                j = 1 - j;
+            } else {
+                iSet.push_back(value); // Put value back if no space
+                return false;
+            }
+        } else if (iSet.size() >= threshold) {
+            continue; // Retry relocation
+        } else {
+            return true; // Relocation succeeded
+        }
     }
     
     return false; // If all rounds fail, relocation is unsuccessful
@@ -443,41 +487,47 @@ void LogicalCuckoo<T>::resize() {
         l->lock();
     }
 
-    //check if already resized
-    if (capacity != oldCapacity) {
-        std::cout << "here?" << std::endl;
-        return;
-    }
+    bool resizing = true;
+    while(resizing){
+        //Save old tables
+        auto oldTable1 = table1;
+        auto oldTable2 = table2;
+        // Double the capacity
+        maxSize += maxSize;
 
-    //Save old tables
-    auto oldTable1 = table1;
-    auto oldTable2 = table2;
+        // Create new tables with larger capacity
+        table1 = std::vector<std::shared_ptr<std::vector<T>>>(maxSize);
+        table2 = std::vector<std::shared_ptr<std::vector<T>>>(maxSize);
 
-    // Double the capacity
-    capacity += capacity;
+        for (int i = 0; i < capacity; i++) {
+            table1[i] = std::make_shared<std::vector<T>>();
+            table2[i] = std::make_shared<std::vector<T>>();
+        }
 
-    // Create new tables with larger capacity
-    table1 = std::vector<std::shared_ptr<std::vector<T>>>(capacity);
-    table2 = std::vector<std::shared_ptr<std::vector<T>>>(capacity);
+        std::cout << "Here tjo: " << maxSize << std::endl;
 
-    for (int i = 0; i < capacity; i++) {
-        table1[i] = std::make_shared<std::vector<T>>();
-        table2[i] = std::make_shared<std::vector<T>>();
-    }
+        for (const auto& bucket : oldTable1) {
+            if (!bucket) continue; //New buckets
+            for (const auto& value : *bucket) {
+                if(!add_safe(value)){
+                    resizing = true;
+                    break;
+                }
+            }
+        }
 
-    std::cout << "Here tjo" << std::endl;
-
-    for (const auto& bucket : oldTable1) {
-        for (const auto& value : *bucket) {
-            add(value);
+        for (const auto& bucket : oldTable2) {
+            if (!bucket) continue;
+            for (const auto& value : *bucket) {
+                if(!add_safe(value)){
+                    resizing = true;
+                    break;
+                }
+            }
         }
     }
 
-    for (const auto& bucket : oldTable2) {
-        for (const auto& value : *bucket) {
-            add(value);
-        }
-    }
+    
 
     std::cout << "Here tjo2" << std::endl;
 
@@ -485,6 +535,47 @@ void LogicalCuckoo<T>::resize() {
         l->unlock();
     }
 }
+
+template <typename T>
+bool LogicalCuckoo<T>::add_safe(T value) {
+    int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
+    int i = -1, h = -1;
+    bool mustResize = false;
+
+    auto& set0 = *table1[h0];
+    auto& set1 = *table2[h1];
+
+    if (set0.size() < threshold) {
+        set0.push_back(value);
+        return true;
+    } else if (set1.size() < threshold) {
+        set1.push_back(value);
+        return true;
+    } else if (set0.size() < PROBE_SIZE) {
+        set0.push_back(value);
+        i = 0;
+        h = h0;
+    } else if (set1.size() < PROBE_SIZE) {
+        set1.push_back(value);
+        i = 1;
+        h = h1;
+    } else {
+        if(set0.size() < set1.size()){
+            set0.push_back(value);
+        }
+        else{
+            set1.push_back(value);
+        }
+
+        return false;
+    }
+
+    if (!relocate_safe(i, h)) {
+        return false;
+    }
+    return true;
+}
+
 template <typename T>
 void LogicalCuckoo<T>::acquire(T x) {
     int h0 = t1Hash(x) % locks1.size();

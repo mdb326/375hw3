@@ -137,3 +137,23 @@ Total Striped 16 Threaded time: 0.796647 seconds
 Total Book 16 Threaded time: 0.315216 seconds
 Total Sets 16 Threaded time: 0.359849 seconds
 Total Sequential time: 0.971055 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.785472 seconds
+Total Book 16 Threaded time: 0.324128 seconds
+Total Sets 16 Threaded time: 0.355163 seconds
+Total Sequential time: 0.894875 seconds
+Running with size = 32768
+Here tjo
+Running with size = 32768
+Total Striped 16 Threaded time: 0.784754 seconds
+Total Book 16 Threaded time: 0.319894 seconds
+Total Sets 16 Threaded time: 0.352850 seconds
+Total Sequential time: 0.981523 seconds
+Running with size = 32768
+Here tjo
+Running with size = 32768
+Running with size = 32768
+Running with size = 32768
+Running with size = 32768
+Running with size = 32768
+Here tjo
