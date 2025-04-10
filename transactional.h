@@ -127,9 +127,10 @@ std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<
 
 template <typename T>
 bool TransactionalCuckoo<T>::contains(T value) {
-    size_t h0 = t1Hash(value);
-    size_t h1 = t2Hash(value);
+    int h0 = t1Hash(value);
+    int h1 = t2Hash(value);
     synchronized { 
+        
         
         if(table1[h0] == value){
             return true;
@@ -170,15 +171,19 @@ int TransactionalCuckoo<T>::hash1(T value) const {
 
 template <typename T>
 int TransactionalCuckoo<T>::hash2(T value) const {
-    atomic_noexcept{
-        //has to be done in one line without saving to variable???
-        return (std::hash<T>{}(value) ^ ((std::hash<T>{}(value) >> 13) ^ (std::hash<T>{}(value) << 17))) % maxSize;
+    size_t hash;
+    synchronized{
+        hash = std::hash<T>{}(value);
+        hash ^= ((hash >> 13) ^ (hash << 17));
+        hash %= maxSize;  
+              
+        return static_cast<int>(hash);
     }
 }
 
 template <typename T>
 int TransactionalCuckoo<T>::hash3(T value) const {
-    atomic_noexcept{
+    synchronized{
         size_t hash = std::hash<T>{}(value);
         hash = (~hash) + (hash << 15);
         return static_cast<int>(hash % maxSize);
@@ -186,7 +191,7 @@ int TransactionalCuckoo<T>::hash3(T value) const {
 }
 template <typename T>
 int TransactionalCuckoo<T>::hash4(T value) const {
-    atomic_noexcept{
+    synchronized{
         size_t hash = std::hash<T>{}(value);
         hash ^= (hash >> 11);
         hash += (hash << 3);
