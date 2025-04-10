@@ -4,6 +4,7 @@
 #include "concurrentWithSets.h"
 #include "concurrentLogical.h"
 #include "concurrent.h"
+#include "transactional.h"
 #include <chrono>
 #include <iostream>
 #include <random>
@@ -35,14 +36,15 @@ int main(int argc, char* argv[]) {
 
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    ConcurrentBook<int> cuckooBook(size);
-    SetsConcurrent<int> cuckooSets(size);
-    LogicalCuckoo<int> cuckooLogical(size);
+    TransactionalCuckoo<int> transactional(size);
+    // ConcurrentBook<int> cuckooBook(size);
+    // SetsConcurrent<int> cuckooSets(size);
+    // LogicalCuckoo<int> cuckooLogical(size);
     int startingSize = size;
     cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    // cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    // cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooSeq.populate(startingSize/3, [size]() { return generateRandomVal(size*4); });
     
     std::thread threads[THREADS];
@@ -63,39 +65,39 @@ int main(int argc, char* argv[]) {
 
     printf("Total Striped %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
-    for(int i = 0; i < THREADS; i++){
-        threads[i] = std::thread(do_workBook, std::ref(cuckooBook), i, TESTAMT/THREADS, size);
-    }
+    // for(int i = 0; i < THREADS; i++){
+    //     threads[i] = std::thread(do_workBook, std::ref(cuckooBook), i, TESTAMT/THREADS, size);
+    // }
 
-    for (auto &th : threads){
-        th.join();
-    }
+    // for (auto &th : threads){
+    //     th.join();
+    // }
 
-    maxTime = 0.0;
-    for(int i = 0; i < THREADS; i++){
-        if(times[i].count() > maxTime){
-            maxTime = times[i].count();
-        }
-    }
+    // maxTime = 0.0;
+    // for(int i = 0; i < THREADS; i++){
+    //     if(times[i].count() > maxTime){
+    //         maxTime = times[i].count();
+    //     }
+    // }
 
-    printf("Total Book %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    // printf("Total Book %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
-    for(int i = 0; i < THREADS; i++){
-        threads[i] = std::thread(do_workSets, std::ref(cuckooSets), i, TESTAMT/THREADS, size);
-    }
+    // for(int i = 0; i < THREADS; i++){
+    //     threads[i] = std::thread(do_workSets, std::ref(cuckooSets), i, TESTAMT/THREADS, size);
+    // }
 
-    for (auto &th : threads){
-        th.join();
-    }
+    // for (auto &th : threads){
+    //     th.join();
+    // }
 
-    maxTime = 0.0;
-    for(int i = 0; i < THREADS; i++){
-        if(times[i].count() > maxTime){
-            maxTime = times[i].count();
-        }
-    }
+    // maxTime = 0.0;
+    // for(int i = 0; i < THREADS; i++){
+    //     if(times[i].count() > maxTime){
+    //         maxTime = times[i].count();
+    //     }
+    // }
 
-    printf("Total Sets %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    // printf("Total Sets %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     auto begin1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
