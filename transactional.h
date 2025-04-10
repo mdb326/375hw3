@@ -124,23 +124,6 @@ std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<
         }
     }
 }
-
-template <typename T>
-bool TransactionalCuckoo<T>::contains(T value) {
-    int h0 = t1Hash(value);
-    int h1 = t2Hash(value);
-    synchronized { 
-        
-        
-        if(table1[h0] == value){
-            return true;
-        }
-        if(table2[h1] == value){
-            return true;
-        }
-    }
-    return false;
-}
 template <typename T>
 void TransactionalCuckoo<T>::display() {
     std::cout << "Table 1: ";
@@ -163,6 +146,23 @@ void TransactionalCuckoo<T>::display() {
 }
 
 template <typename T>
+bool TransactionalCuckoo<T>::contains(T value) {
+    int h0 = t1Hash(value);
+    int h1 = t2Hash(value);
+    synchronized { 
+
+        if(table1[h0] == value){
+            return true;
+        }
+        if(table2[h1] == value){
+            return true;
+        }
+    }
+    return false;
+}
+
+
+template <typename T>
 int TransactionalCuckoo<T>::hash1(T value) const {
     atomic_noexcept{
         return std::hash<T>{}(value) % maxSize; 
@@ -172,11 +172,11 @@ int TransactionalCuckoo<T>::hash1(T value) const {
 template <typename T>
 int TransactionalCuckoo<T>::hash2(T value) const {
     size_t hash;
-    synchronized{
+    atomic_noexcept{
         hash = std::hash<T>{}(value);
         hash ^= ((hash >> 13) ^ (hash << 17));
         hash %= maxSize;  
-              
+        //stupid casting
         return static_cast<int>(hash);
     }
 }
