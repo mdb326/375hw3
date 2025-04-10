@@ -475,14 +475,14 @@ void LogicalCuckoo<T>::newHashes() {
 template <typename T>
 void LogicalCuckoo<T>::populate(int amt, std::function<T()> generator) {
     for (int i = 0; i < amt; i++) {
-        while(!add(generator()));
+        T val = generator();
+        std::cout << val << std::endl;
+        while(!add(val));
     }
 }
 
 template <typename T>
 void LogicalCuckoo<T>::resize() {
-    int oldCapacity = capacity;
-
     for (auto& l : locks1) {
         l->lock();
     }
@@ -511,6 +511,7 @@ void LogicalCuckoo<T>::resize() {
             if (!bucket) continue; //New buckets if resizing twice
             for (const auto& value : *bucket) {
                 if(!add_safe(value)){
+                    std::cout << value << std::endl;
                     resizing = true;
                     break;
                 }
@@ -521,6 +522,7 @@ void LogicalCuckoo<T>::resize() {
             if (!bucket) continue;
             for (const auto& value : *bucket) {
                 if(!add_safe(value)){
+                    std::cout << value << std::endl;
                     resizing = true;
                     break;
                 }
