@@ -19,13 +19,13 @@ public:
     void populate(int amt, std::function<T()> generator);
 
 private:
-    std::function<int(std::optional<T>)> t1Hash;
-    std::function<int(std::optional<T>)> t2Hash;
+    std::function<int(T)> t1Hash;
+    std::function<int(T)> t2Hash;
 
-    int hash1(std::optional<T> value) const;
-    int hash2(std::optional<T> value) const;
-    int hash3(std::optional<T> value) const;
-    int hash4(std::optional<T> value) const;
+    int hash1(T value) const;
+    int hash2(T value) const;
+    int hash3(T value) const;
+    int hash4(T value) const;
     void resize(int newSize);
     void newHashes();
     int generateRandomInt(int min, int max);
@@ -42,15 +42,15 @@ TransactionalCuckoo<T>::TransactionalCuckoo(int _size) {
     maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
-    t1Hash = [this](std::optional<T> value) { return hash1(value); };
-    t2Hash = [this](std::optional<T> value) { return hash2(value); };
+    t1Hash = [this](T value) { return hash1(value); };
+    t2Hash = [this](T value) { return hash2(value); };
 }
 template <typename T>
 TransactionalCuckoo<T>::TransactionalCuckoo() {
     table1.resize(maxSize);
     table2.resize(maxSize);
-    t1Hash = [this](std::optional<T> value) { return hash1(value); };
-    t2Hash = [this](std::optional<T> value) { return hash2(value); };
+    t1Hash = [this](T value) { return hash1(value); };
+    t2Hash = [this](T value) { return hash2(value); };
 }
 template <typename T>
 bool TransactionalCuckoo<T>::add(T value) {
@@ -65,10 +65,10 @@ bool TransactionalCuckoo<T>::add(T value) {
         }
         std::optional<T> x = value;
         for(int i = 0; i < limit; i++){
-            if((x = swap(1,t1Hash(x), x)) == NULL){
+            if((x = swap(1,t1Hash(x.value()), x)) == NULL){
                 return true;
             }
-            else if ((x = swap(2,t2Hash(x), x)) == NULL){
+            else if ((x = swap(2,t2Hash(x.value()), x)) == NULL){
                 return true;
             }
         }
@@ -127,11 +127,14 @@ std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<
 
 template <typename T>
 bool TransactionalCuckoo<T>::contains(T value) {
-    synchronized{
-        if(table1[t1Hash(value)] == value){
+    size_t h0 = t1Hash(value);
+    size_t h1 = t2Hash(value);
+    synchronized { 
+        
+        if(table1[h0] == value){
             return true;
         }
-        if(table2[t2Hash(value)] == value){
+        if(table2[h1] == value){
             return true;
         }
     }
@@ -159,29 +162,36 @@ void TransactionalCuckoo<T>::display() {
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash1(std::optional<T> value) const {
-    return std::hash<T>{}(value.value()) % maxSize; 
+int TransactionalCuckoo<T>::hash1(T value) const {
+    atomic_noexcept{
+        return std::hash<T>{}(value) % maxSize; 
+    }
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash2(std::optional<T> value) const {
-    unsigned int hash = std::hash<T>{}(value.value());
-    hash ^= (hash >> 13) ^ (hash << 17);
-    return static_cast<int>(hash % maxSize);
+int TransactionalCuckoo<T>::hash2(T value) const {
+    atomic_noexcept{
+        //has to be done in one line without saving to variable???
+        return (std::hash<T>{}(value) ^ ((std::hash<T>{}(value) >> 13) ^ (std::hash<T>{}(value) << 17))) % maxSize;
+    }
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash3(std::optional<T> value) const {
-    unsigned int hash = std::hash<T>{}(value.value());
-    hash = (~hash) + (hash << 15);
-    return static_cast<int>(hash % maxSize);
+int TransactionalCuckoo<T>::hash3(T value) const {
+    atomic_noexcept{
+        size_t hash = std::hash<T>{}(value);
+        hash = (~hash) + (hash << 15);
+        return static_cast<int>(hash % maxSize);
+    }
 }
 template <typename T>
-int TransactionalCuckoo<T>::hash4(std::optional<T> value) const {
-    unsigned int hash = std::hash<T>{}(value.value());
-    hash ^= (hash >> 11);
-    hash += (hash << 3);
-    return static_cast<int>(hash % maxSize);
+int TransactionalCuckoo<T>::hash4(T value) const {
+    atomic_noexcept{
+        size_t hash = std::hash<T>{}(value);
+        hash ^= (hash >> 11);
+        hash += (hash << 3);
+        return static_cast<int>(hash % maxSize);
+    }
 }
 
 template <typename T>
@@ -241,32 +251,32 @@ void TransactionalCuckoo<T>::newHashes() {
     }
     switch (hash1) {
         case 1:
-            t1Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            t1Hash = [this](T value) { return this->hash1(value); };
             break;
         case 2:
-            t1Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            t1Hash = [this](T value) { return this->hash2(value); };
             break;
         case 3:
-            t1Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            t1Hash = [this](T value) { return this->hash3(value); };
             break;
         case 4:
-            t1Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            t1Hash = [this](T value) { return this->hash4(value); };
             break;
     }
     
     // Assign t2Hash using a switch on hash2
     switch (hash2) {
         case 1:
-            t2Hash = [this](std::optional<T> value) { return this->hash1(value); };
+            t2Hash = [this](T value) { return this->hash1(value); };
             break;
         case 2:
-            t2Hash = [this](std::optional<T> value) { return this->hash2(value); };
+            t2Hash = [this](T value) { return this->hash2(value); };
             break;
         case 3:
-            t2Hash = [this](std::optional<T> value) { return this->hash3(value); };
+            t2Hash = [this](T value) { return this->hash3(value); };
             break;
         case 4:
-            t2Hash = [this](std::optional<T> value) { return this->hash4(value); };
+            t2Hash = [this](T value) { return this->hash4(value); };
             break;
     }
 }
