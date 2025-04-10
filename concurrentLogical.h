@@ -326,22 +326,23 @@ bool LogicalCuckoo<T>::contains(T value, bool fromAdd) {
     if(!fromAdd){
         acquireShared(value);
     }
-    auto& bucket1_ptr = table1[t1Hash(value)];
-    auto& bucket2_ptr = table2[t2Hash(value)];
+    size_t h0 = t1Hash(value);
+    size_t h1 = t2Hash(value);
+    auto& bucket1_ptr = table1[h0];
+    auto& bucket2_ptr = table2[h1];
 
 
-    for (const auto& val : *bucket1_ptr) {
-        if (val == value) {
-            if(!fromAdd){
+    for (size_t i = 0; i < bucket1_ptr->size(); ++i) {
+        if ((*bucket1_ptr)[i] == value && !(*deletes1[h0])[i]->load()) {
+            if (!fromAdd) {
                 releaseShared(value);
             }
             return true;
         }
     }
-
-    for (const auto& val : *bucket2_ptr) {
-        if (val == value) {
-            if(!fromAdd){
+    for (size_t i = 0; i < bucket2_ptr->size(); ++i) {
+        if ((*bucket2_ptr)[i] == value && !(*deletes2[h1])[i]->load()) {
+            if (!fromAdd) {
                 releaseShared(value);
             }
             return true;
