@@ -50,14 +50,15 @@ private:
 
     std::vector<std::shared_ptr<std::vector<T>>> table1;
     std::vector<std::shared_ptr<std::vector<T>>> table2;
+    std::vector<std::shared_ptr<std::vector<std::atomic<bool>*>>> deletes1; //copying rules
+    std::vector<std::shared_ptr<std::vector<std::atomic<bool>*>>> deletes2;
 
     int maxSize = 10;
     int limit = 40;
     int dataAmt = 0;
     std::vector<std::shared_ptr<std::shared_mutex>> locks1;
     std::vector<std::shared_ptr<std::shared_mutex>> locks2;
-    std::vector<std::atomic<bool>*> deletes1; //copying rules
-    std::vector<std::atomic<bool>*> deletes2;
+    
 };
 
 template <typename T>
@@ -80,8 +81,14 @@ LogicalCuckoo<T>::LogicalCuckoo(int _size) {
         table1[i]->resize(capacity);
         table2[i] = std::make_shared<std::vector<T>>();
         table2[i]->resize(capacity);
-        deletes1[i] = new std::atomic<bool>(false);
-        deletes2[i] = new std::atomic<bool>(false);
+        deletes1[i] = std::make_shared<std::vector<std::atomic<bool>*>>();
+        deletes2[i] = std::make_shared<std::vector<std::atomic<bool>*>>();
+        deletes1[i]->resize(capacity);
+        deletes2[i]->resize(capacity);
+        for(int j = 0; j < capacity; j++){
+            (*deletes1[i])[j] = new std::atomic<bool>(false);
+            (*deletes2[i])[j] = new std::atomic<bool>(false);
+        }
     }
     for(int i = 0; i < _size/STRIPING; i++){
         locks1[i] = std::make_shared<std::shared_mutex>();
@@ -106,8 +113,14 @@ LogicalCuckoo<T>::LogicalCuckoo() {
         table2[i] = std::make_shared<std::vector<T>>();
         table1[i]->resize(capacity);
         table2[i]->resize(capacity);
-        deletes1[i] = new std::atomic<bool>(false);
-        deletes2[i] = new std::atomic<bool>(false);
+        deletes1[i] = std::make_shared<std::vector<std::atomic<bool>*>>();
+        deletes2[i] = std::make_shared<std::vector<std::atomic<bool>*>>();
+        deletes1[i]->resize(capacity);
+        deletes2[i]->resize(capacity);
+        for(int j = 0; j < capacity; j++){
+            (*deletes1[i])[j] = new std::atomic<bool>(false);
+            (*deletes2[i])[j] = new std::atomic<bool>(false);
+        }
     }
     for(int i = 0; i < maxSize/STRIPING; i++){
         locks1[i] = std::make_shared<std::shared_mutex>();
