@@ -21,6 +21,7 @@ int generateRandomInteger(int min, int max);
 void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size);
 void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size);
 void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size);
+void do_workTransactional(TransactionalCuckoo<int>& cuckoo, int threadNum, int iter, int size);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -42,6 +43,7 @@ int main(int argc, char* argv[]) {
     // LogicalCuckoo<int> cuckooLogical(size);
     int startingSize = size;
     cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    transactional.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
@@ -115,6 +117,23 @@ int main(int argc, char* argv[]) {
 
     printf("Total Sequential time: %lf seconds\n", exec_time_i);
 
+    for(int i = 0; i < THREADS; i++){
+        threads[i] = std::thread(do_workTransactional, std::ref(transactional), i, TESTAMT/THREADS, size);
+    }
+
+    for (auto &th : threads){
+        th.join();
+    }
+
+    maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
+
+    printf("Total Transactional %d Threaded time: %lf seconds\n", THREADS, maxTime);
+
     return 0;
 }
 
@@ -171,6 +190,22 @@ void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size)
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
+        } else if (num <= 9) {
+            cuckoo.add(generateRandomVal(size));
+        } else {
+            cuckoo.remove(generateRandomVal(size));
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    times[threadNum] = exec_time_i;
+}
+void do_workTransactional(TransactionalCuckoo<int>& cuckoo, int threadNum, int iter, int size){
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iter; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= 8) {
+            cuckoo.contains(generateRandomVal(size));
         } else if (num <= 9) {
             cuckoo.add(generateRandomVal(size));
         } else {
