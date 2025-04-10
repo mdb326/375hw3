@@ -142,24 +142,61 @@ bool LogicalCuckoo<T>::add(T value) {
     auto& set0 = *table1[h0];
     auto& set1 = *table2[h1];
 
-    if (set0.size() < threshold) {
-        set0.push_back(value);
+    size_t size0 = 0;
+    size_t size1 = 0;
+    for (size_t i = 0; i < set0.size(); ++i) {
+        if (!(*deletes1[h0])[i]->load()) {  // Only count if not marked for deletion
+            ++size0;
+        }
+    }
+    for (size_t i = 0; i < set1.size(); ++i) {
+        if (!(*deletes2[h1])[i]->load()) {  // Only count if not marked for deletion
+            ++size1;
+        }
+    }
+
+    if (size0 < threshold) {
+        for (size_t i = 0; i < set0.size(); ++i) {
+            if (!(*deletes1[h0])[i]->load()) { 
+                set0[i] = value; 
+                (*deletes1[h0])[i]->store(true);
+                break; 
+            }
+        }
         release(value);
         return true;
-    } else if (set1.size() < threshold) {
-        set1.push_back(value);
+    } else if (size1 < threshold) {
+        for (size_t i = 0; i < set1.size(); ++i) {
+            if (!(*deletes1[h0])[i]->load()) { 
+                set1[i] = value; 
+                (*deletes1[h0])[i]->store(true);
+                break; 
+            }
+        }
         release(value);
         return true;
-    } else if (set0.size() < PROBE_SIZE) {
-        set0.push_back(value);
+    } else if (size0 < PROBE_SIZE) {
+        for (size_t i = 0; i < set0.size(); ++i) {
+            if (!(*deletes1[h0])[i]->load()) { 
+                set0[i] = value; 
+                (*deletes1[h0])[i]->store(true);
+                break; 
+            }
+        }
         i = 0;
         h = h0;
-    } else if (set1.size() < PROBE_SIZE) {
-        set1.push_back(value);
+    } else if (size1 < PROBE_SIZE) {
+        for (size_t i = 0; i < set1.size(); ++i) {
+            if (!(*deletes1[h0])[i]->load()) { 
+                set1[i] = value; 
+                (*deletes1[h0])[i]->store(true);
+                break; 
+            }
+        }
         i = 1;
         h = h1;
     } else {
-        if(set0.size() < set1.size()){
+        if(size0 < size1){
             set0.push_back(value);
         }
         else{
