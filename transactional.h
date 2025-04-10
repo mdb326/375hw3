@@ -3,6 +3,7 @@
 #include <optional>
 #include <functional>
 #include <random>
+#include <thread>
 
 template <typename T>
 class TransactionalCuckoo {
@@ -53,78 +54,86 @@ TransactionalCuckoo<T>::TransactionalCuckoo() {
 }
 template <typename T>
 bool TransactionalCuckoo<T>::add(T value) {
-    dataAmt++;
-    if(dataAmt > maxSize/2){
-        resize(maxSize * 2);
-    }
-    //we want to keep the amount in it right around 50%
-    if(contains(value)){
-        return false;
-    }
-    std::optional<T> x = value;
-    for(int i = 0; i < limit; i++){
-        if((x = swap(1,t1Hash(x), x)) == NULL){
-            return true;
+    synchronized {
+        dataAmt++;
+        if(dataAmt > maxSize/2){
+            resize(maxSize * 2);
         }
-        else if ((x = swap(2,t2Hash(x), x)) == NULL){
-            return true;
+        //we want to keep the amount in it right around 50%
+        if(contains(value)){
+            return false;
         }
+        std::optional<T> x = value;
+        for(int i = 0; i < limit; i++){
+            if((x = swap(1,t1Hash(x), x)) == NULL){
+                return true;
+            }
+            else if ((x = swap(2,t2Hash(x), x)) == NULL){
+                return true;
+            }
+        }
+        //failed to add
+        newHashes();
+        resize(maxSize);
+        add(x.value()); //guaranteed to have value since we just took it out
     }
-    //failed to add
-    newHashes();
-    resize(maxSize);
-    add(x.value()); //guaranteed to have value since we just took it out
     return false;
 }
 
 template <typename T>
 bool TransactionalCuckoo<T>::remove(T value) {
     int loc = t1Hash(value);
-    if(table1[loc].has_value() && table1[loc].value() == value){
-        table1[loc] = std::nullopt;
-        return true;
-    }
-    loc = t2Hash(value);
-    if(table2[loc].has_value() && table2[loc].value() == value){
-        table2[loc] = std::nullopt;
-        return true;
+    synchronized {
+        if(table1[loc].has_value() && table1[loc].value() == value){
+            table1[loc] = std::nullopt;
+            return true;
+        }
+        loc = t2Hash(value);
+        if(table2[loc].has_value() && table2[loc].value() == value){
+            table2[loc] = std::nullopt;
+            return true;
+        }
     }
     return false;
 }
 
 template <typename T>
 std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<T> value){
-    if(table == 1){ //go into table1 
-        if(!table1[loc].has_value()){
-            table1[loc] = value;
-            return NULL;
+    synchronized {
+        if(table == 1){ //go into table1 
+            if(!table1[loc].has_value()){
+                table1[loc] = value;
+                return NULL;
+            }
+            else { 
+                std::optional<T> temp = table1[loc];
+                table1[loc] = value;
+                return temp;
+            }
         }
-        else { 
-            std::optional<T> temp = table1[loc];
-            table1[loc] = value;
-            return temp;
-        }
-    }
-    else { //table2
-        if(!table2[loc].has_value()){
-            table2[loc] = value;
-            return NULL;
-        }
-        else {
-            std::optional<T> temp = table2[loc];
-            table2[loc] = value;
-            return temp;
+        else { //table2
+            if(!table2[loc].has_value()){
+                table2[loc] = value;
+                return NULL;
+            }
+            else {
+                std::optional<T> temp = table2[loc];
+                table2[loc] = value;
+                return temp;
+            }
         }
     }
 }
 
 template <typename T>
 bool TransactionalCuckoo<T>::contains(T value) {
-    if(table1[t1Hash(value)] == value){
-        return true;
-    }
-    if(table2[t2Hash(value)] == value){
-        return true;
+    synchronized{
+        if(table1[t1Hash(value)] == value){
+            return true;
+        }
+        if(table2[t2Hash(value)] == value){
+            return true;
+        }
     }
     return false;
 }
@@ -192,24 +201,26 @@ int TransactionalCuckoo<T>::size() {
 }
 template <typename T>
 void TransactionalCuckoo<T>::resize(int newSize) {
-    maxSize = newSize;
-    std::vector<T> values;
-    for (const std::optional<T>& val : table1) {
-        if (val.has_value()) {
-            values.push_back(val.value());
+    synchronized {
+        maxSize = newSize;
+        std::vector<T> values;
+        for (const std::optional<T>& val : table1) {
+            if (val.has_value()) {
+                values.push_back(val.value());
+            }
         }
-    }
-    for (const std::optional<T>& val : table2) {
-        if (val.has_value()) {
-            values.push_back(val.value());
+        for (const std::optional<T>& val : table2) {
+            if (val.has_value()) {
+                values.push_back(val.value());
+            }
         }
-    }
-    table1.clear();
-    table2.clear();
-    table1.resize(newSize);
-    table2.resize(newSize);
-    for(T val : values){
-        add(val);
+        table1.clear();
+        table2.clear();
+        table1.resize(newSize);
+        table2.resize(newSize);
+        for(T val : values){
+            add(val);
+        }
     }
 }
 // Generates a random int between min and max (inclusive)
