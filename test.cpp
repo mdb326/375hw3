@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     cuckooSeq.populate(startingSize/3, [size]() { return generateRandomVal(size*4); });
     
     std::thread threads[THREADS];
