@@ -106,56 +106,63 @@ ConcurrentCuckoo<T>::ConcurrentCuckoo() {
 }
 template <typename T>
 bool ConcurrentCuckoo<T>::add(T value) {
-    acquire(value);
-    int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
-    int i = -1, h = -1;
-    bool mustResize = false;
+    while(true){
+        acquire(value);
+        int h0 = t1Hash(value) % maxSize, h1 = t2Hash(value) % maxSize;
+        int i = -1, h = -1;
+        bool mustResize = false;
 
-    if (contains(value, true)){
-        release(value);
-        return false; // Check if value is already in the set
-    } 
+        if (contains(value, true)){
+            release(value);
+            return false; // Check if value is already in the set
+        } 
 
-    auto& set0 = *table1[h0];
-    auto& set1 = *table2[h1];
+        auto& set0 = *table1[h0];
+        auto& set1 = *table2[h1];
 
-    if (set0.size() < threshold) {
-        set0.push_back(value);
-        release(value);
-        return true;
-    } else if (set1.size() < threshold) {
-        set1.push_back(value);
-        release(value);
-        return true;
-    } else if (set0.size() < PROBE_SIZE) {
-        set0.push_back(value);
-        i = 0;
-        h = h0;
-    } else if (set1.size() < PROBE_SIZE) {
-        set1.push_back(value);
-        i = 1;
-        h = h1;
-    } else {
-        if(set0.size() < set1.size()){
+        if (set0.size() < threshold) {
             set0.push_back(value);
-        }
-        else{
+            release(value);
+            return true;
+        } else if (set1.size() < threshold) {
             set1.push_back(value);
+            release(value);
+            return true;
+        } else if (set0.size() < PROBE_SIZE) {
+            set0.push_back(value);
+            i = 0;
+            h = h0;
+            if(!relocate(i,h)){
+                mustResize = true;
+            }
+        } else if (set1.size() < PROBE_SIZE) {
+            set1.push_back(value);
+            i = 1;
+            h = h1;
+            if(!relocate(i,h)){
+                mustResize = true;
+            }
+        } else {
+            if(set0.size() < set1.size()){
+                set0.push_back(value);
+            }
+            else{
+                set1.push_back(value);
+            }
+
+            mustResize = true;
         }
 
-        mustResize = true;
-    }
-
-    if (mustResize) {
+        
+        if(!mustResize){
+            release(value);
+            return true;
+        }
         release(value);
-        resize();
-        return add(value);
-    } else if (!relocate(i, h)) {
-        release(value);
+        
         resize();
     }
-    release(value);
-    return true;
+    
 }
 
 template <typename T>
