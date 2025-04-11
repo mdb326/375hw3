@@ -32,7 +32,7 @@ private:
 
     std::vector<std::optional<T>> table1; 
     std::vector<std::optional<T>> table2;
-    int maxSize = 10;
+    std::atomic<int> maxSize{10};
     int limit = 400;
     int dataAmt = 0;
 };
@@ -83,14 +83,14 @@ bool TransactionalCuckoo<T>::add(T value) {
 template <typename T>
 bool TransactionalCuckoo<T>::remove(T value) {
     int loc = t1Hash(value);
+    int loc2 = t2Hash(value);
     synchronized {
         if(table1[loc].has_value() && table1[loc].value() == value){
             table1[loc] = std::nullopt;
             return true;
-        }
-        loc = t2Hash(value);
-        if(table2[loc].has_value() && table2[loc].value() == value){
-            table2[loc] = std::nullopt;
+        }    
+        if(table2[loc2].has_value() && table2[loc2].value() == value){
+            table2[loc2] = std::nullopt;
             return true;
         }
     }
@@ -147,10 +147,10 @@ void TransactionalCuckoo<T>::display() {
 
 template <typename T>
 bool TransactionalCuckoo<T>::contains(T value) {
-    int h0 = t1Hash(value);
-    int h1 = t2Hash(value);
-    synchronized { 
-
+    int h0, h1;
+    h0 = t1Hash(value);
+    h1 = t2Hash(value);
+    __transaction_atomic {
         if(table1[h0] == value){
             return true;
         }
@@ -164,39 +164,30 @@ bool TransactionalCuckoo<T>::contains(T value) {
 
 template <typename T>
 int TransactionalCuckoo<T>::hash1(T value) const {
-    atomic_noexcept{
-        return std::hash<T>{}(value) % maxSize; 
-    }
+    return std::hash<T>{}(value) % maxSize; 
 }
 
 template <typename T>
 int TransactionalCuckoo<T>::hash2(T value) const {
     size_t hash;
-    atomic_noexcept{
-        hash = std::hash<T>{}(value);
-        hash ^= ((hash >> 13) ^ (hash << 17));
-        hash %= maxSize;  
-        //stupid casting
-        return static_cast<int>(hash);
-    }
+    hash = std::hash<T>{}(value);
+    hash ^= ((hash >> 13) ^ (hash << 17));
+    hash %= maxSize;  
+    return static_cast<int>(hash);
 }
 
 template <typename T>
 int TransactionalCuckoo<T>::hash3(T value) const {
-    synchronized{
-        size_t hash = std::hash<T>{}(value);
-        hash = (~hash) + (hash << 15);
-        return static_cast<int>(hash % maxSize);
-    }
+    size_t hash = std::hash<T>{}(value);
+    hash = (~hash) + (hash << 15);
+    return static_cast<int>(hash % maxSize);
 }
 template <typename T>
 int TransactionalCuckoo<T>::hash4(T value) const {
-    synchronized{
-        size_t hash = std::hash<T>{}(value);
-        hash ^= (hash >> 11);
-        hash += (hash << 3);
-        return static_cast<int>(hash % maxSize);
-    }
+    size_t hash = std::hash<T>{}(value);
+    hash ^= (hash >> 11);
+    hash += (hash << 3);
+    return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>

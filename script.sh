@@ -3,7 +3,9 @@
 # Clean and build the program
 make clean
 make hw
-./test 65536
+for i in {1..10}; do
+    ./test 65536
+done
 # List of size parameters
 # sizes=(1024 4096 32768 262144 1048576 4194304 16777216)
 # sizes=(32768)
