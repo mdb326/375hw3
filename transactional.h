@@ -75,9 +75,9 @@ bool TransactionalCuckoo<T>::add(T value) {
         //failed to add
         newHashes();
         resize(maxSize);
-        add(x.value()); //guaranteed to have value since we just took it out
+        return add(x.value()); //guaranteed to have value since we just took it out
     }
-    return false;
+    // return true;
 }
 
 template <typename T>

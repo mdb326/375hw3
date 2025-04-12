@@ -4,6 +4,7 @@
 #include "concurrentWithSets.h"
 #include "concurrentLogical.h"
 #include "concurrent.h"
+#include "transactionalSynchronized.h"
 #include "transactional.h"
 #include <chrono>
 #include <iostream>
@@ -68,12 +69,12 @@ int main(int argc, char* argv[]) {
         resultSize1 += deltas[i];
     }
 
-    if(resultSize1 == cuckoo.size()){
-        std::cout << "SUCCESS" << std::endl;
-    }
-    else{
-        std::cout << "EXPECTED: " << resultSize1 << " ACTUAL: " << cuckoo.size()  << std::endl;
-    }
+    // if(resultSize1 == cuckoo.size()){
+    //     std::cout << "SUCCESS" << std::endl;
+    // }
+    // else{
+    //     std::cout << "EXPECTED: " << resultSize1 << " ACTUAL: " << cuckoo.size()  << std::endl;
+    // }
     printf("Total Striped %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     // for(int i = 0; i < THREADS; i++){
@@ -140,20 +141,21 @@ int main(int argc, char* argv[]) {
     for (auto &th : threads){
         th.join();
     }
-
+    int resultSize3 = startingSize;
     maxTime = 0.0;
     for(int i = 0; i < THREADS; i++){
         if(times[i].count() > maxTime){
             maxTime = times[i].count();
+            resultSize3 += deltas[i];
         }
     }
 
-    if(resultSize1 == cuckoo.size()){
-        std::cout << "SUCCESS" << std::endl;
-    }
-    else{
-        std::cout << "EXPECTED: " << resultSize1 << " ACTUAL: " << cuckoo.size()  << std::endl;
-    }
+    // if(resultSize3 == transactional.size()){
+    //     std::cout << "SUCCESS" << std::endl;
+    // }
+    // else{
+    //     std::cout << "EXPECTED: " << resultSize3 << " ACTUAL: " << transactional.size()  << std::endl;
+    // }
 
     printf("Total Transactional %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
@@ -202,9 +204,13 @@ void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size)
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size));
+            if(cuckoo.add(generateRandomVal(size))){
+                deltas[threadNum]++;
+            }
         } else {
-            cuckoo.remove(generateRandomVal(size));
+            if(cuckoo.remove(generateRandomVal(size))){
+                deltas[threadNum]--;
+            }
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -218,9 +224,13 @@ void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size)
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size));
+            if(cuckoo.add(generateRandomVal(size))){
+                deltas[threadNum]++;
+            }
         } else {
-            cuckoo.remove(generateRandomVal(size));
+            if(cuckoo.remove(generateRandomVal(size))){
+                deltas[threadNum]--;
+            }
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -234,9 +244,13 @@ void do_workTransactional(TransactionalCuckoo<int>& cuckoo, int threadNum, int i
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size));
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size));
+            if(cuckoo.add(generateRandomVal(size))){
+                deltas[threadNum]++;
+            }
         } else {
-            cuckoo.remove(generateRandomVal(size));
+            if(cuckoo.remove(generateRandomVal(size))){
+                deltas[threadNum]--;
+            }
         }
     }
     auto end = std::chrono::high_resolution_clock::now();

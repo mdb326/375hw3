@@ -6,10 +6,10 @@
 #include <thread>
 
 template <typename T>
-class TransactionalCuckoo {
+class SynchronizedCuckoo {
 public:
-    TransactionalCuckoo();
-    TransactionalCuckoo(int _size);
+    SynchronizedCuckoo();
+    SynchronizedCuckoo(int _size);
     bool add(T value);
     int size();
     bool contains(T value);
@@ -38,7 +38,7 @@ private:
 };
 
 template <typename T>
-TransactionalCuckoo<T>::TransactionalCuckoo(int _size) {
+SynchronizedCuckoo<T>::SynchronizedCuckoo(int _size) {
     maxSize = _size;
     table1.resize(_size);
     table2.resize(_size);
@@ -46,14 +46,14 @@ TransactionalCuckoo<T>::TransactionalCuckoo(int _size) {
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
-TransactionalCuckoo<T>::TransactionalCuckoo() {
+SynchronizedCuckoo<T>::SynchronizedCuckoo() {
     table1.resize(maxSize);
     table2.resize(maxSize);
     t1Hash = [this](std::optional<T> value) { return hash1(value); };
     t2Hash = [this](std::optional<T> value) { return hash2(value); };
 }
 template <typename T>
-bool TransactionalCuckoo<T>::add(T value) {
+bool SynchronizedCuckoo<T>::add(T value) {
     synchronized {
         dataAmt++;
         if(dataAmt > maxSize/2){
@@ -75,15 +75,16 @@ bool TransactionalCuckoo<T>::add(T value) {
         //failed to add
         newHashes();
         resize(maxSize);
-        add(x.value()); //guaranteed to have value since we just took it out
+        return add(x.value()); //guaranteed to have value since we just took it out
     }
-    return false;
+    
 }
 
 template <typename T>
-bool TransactionalCuckoo<T>::remove(T value) {
-    int loc = t1Hash(value);
+bool SynchronizedCuckoo<T>::remove(T value) {
+    
     synchronized {
+        int loc = t1Hash(value);
         if(table1[loc].has_value() && table1[loc].value() == value){
             table1[loc] = std::nullopt;
             return true;
@@ -93,12 +94,13 @@ bool TransactionalCuckoo<T>::remove(T value) {
             table2[loc] = std::nullopt;
             return true;
         }
+        return false;
     }
-    return false;
+    
 }
 
 template <typename T>
-std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<T> value){
+std::optional<T> SynchronizedCuckoo<T>::swap(int table, int loc, std::optional<T> value){
     synchronized {
         if(table == 1){ //go into table1 
             if(!table1[loc].has_value()){
@@ -126,7 +128,7 @@ std::optional<T> TransactionalCuckoo<T>::swap(int table, int loc, std::optional<
 }
 
 template <typename T>
-bool TransactionalCuckoo<T>::contains(T value) {
+bool SynchronizedCuckoo<T>::contains(T value) {
     synchronized{
         if(table1[t1Hash(value)] == value){
             return true;
@@ -138,7 +140,7 @@ bool TransactionalCuckoo<T>::contains(T value) {
     return false;
 }
 template <typename T>
-void TransactionalCuckoo<T>::display() {
+void SynchronizedCuckoo<T>::display() {
     std::cout << "Table 1: ";
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -159,25 +161,25 @@ void TransactionalCuckoo<T>::display() {
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash1(std::optional<T> value) const {
+int SynchronizedCuckoo<T>::hash1(std::optional<T> value) const {
     return std::hash<T>{}(value.value()) % maxSize; 
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash2(std::optional<T> value) const {
+int SynchronizedCuckoo<T>::hash2(std::optional<T> value) const {
     unsigned int hash = std::hash<T>{}(value.value());
     hash ^= (hash >> 13) ^ (hash << 17);
     return static_cast<int>(hash % maxSize);
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::hash3(std::optional<T> value) const {
+int SynchronizedCuckoo<T>::hash3(std::optional<T> value) const {
     unsigned int hash = std::hash<T>{}(value.value());
     hash = (~hash) + (hash << 15);
     return static_cast<int>(hash % maxSize);
 }
 template <typename T>
-int TransactionalCuckoo<T>::hash4(std::optional<T> value) const {
+int SynchronizedCuckoo<T>::hash4(std::optional<T> value) const {
     unsigned int hash = std::hash<T>{}(value.value());
     hash ^= (hash >> 11);
     hash += (hash << 3);
@@ -185,7 +187,7 @@ int TransactionalCuckoo<T>::hash4(std::optional<T> value) const {
 }
 
 template <typename T>
-int TransactionalCuckoo<T>::size() {
+int SynchronizedCuckoo<T>::size() {
     int cnt = 0;
     for (const std::optional<T>& val : table1) {
         if (val.has_value()) {
@@ -200,7 +202,7 @@ int TransactionalCuckoo<T>::size() {
     return cnt;
 }
 template <typename T>
-void TransactionalCuckoo<T>::resize(int newSize) {
+void SynchronizedCuckoo<T>::resize(int newSize) {
     synchronized {
         maxSize = newSize;
         std::vector<T> values;
@@ -225,7 +227,7 @@ void TransactionalCuckoo<T>::resize(int newSize) {
 }
 // Generates a random int between min and max (inclusive)
 template <typename T>
-int TransactionalCuckoo<T>::generateRandomInt(int min, int max) {
+int SynchronizedCuckoo<T>::generateRandomInt(int min, int max) {
     static std::random_device rd; // creates random device (unique to each thread to prevent race cons) (static to avoid reinitialization)
     static std::mt19937 gen(rd());  // Seeding the RNG (unique to each thread to prevent race cons) (static to avoid reinitialization)
     std::uniform_int_distribution<> distrib(min, max); // Create uniform int dist between min and max (inclusive)
@@ -233,11 +235,11 @@ int TransactionalCuckoo<T>::generateRandomInt(int min, int max) {
     return distrib(gen); // Generate random number from the uniform int dist (inclusive)
 }
 template <typename T>
-void TransactionalCuckoo<T>::newHashes() {
-    int hash1 = TransactionalCuckoo<T>::generateRandomInt(1,4);
+void SynchronizedCuckoo<T>::newHashes() {
+    int hash1 = SynchronizedCuckoo<T>::generateRandomInt(1,4);
     int hash2 = hash1;
     while(hash2 == hash1){
-        hash2 = TransactionalCuckoo<T>::generateRandomInt(1,4);
+        hash2 = SynchronizedCuckoo<T>::generateRandomInt(1,4);
     }
     switch (hash1) {
         case 1:
@@ -271,7 +273,7 @@ void TransactionalCuckoo<T>::newHashes() {
     }
 }
 template <typename T>
-void TransactionalCuckoo<T>::populate(int amt, std::function<T()> generator) {
+void SynchronizedCuckoo<T>::populate(int amt, std::function<T()> generator) {
     for (int i = 0; i < amt; i++) {
         while(!add(generator()));
     }
