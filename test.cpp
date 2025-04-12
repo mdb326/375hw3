@@ -13,8 +13,8 @@
 #include <thread>
 
 
-// #define TESTAMT 33554432
-#define TESTAMT 65536 * 64
+#define TESTAMT 33554432
+// #define TESTAMT 67108864
 #define THREADS 16
 #define CONTAINSPER 8
 #define ADDSPER 9

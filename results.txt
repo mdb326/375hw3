@@ -1,159 +1,30 @@
+Running with size = 1024
+Total Striped 16 Threaded time: 1.263162 seconds
+Total Sequential time: 0.161062 seconds
+Total Transactional 16 Threaded time: 0.879031 seconds
+Total Synchronized 16 Threaded time: 2.647976 seconds
+Running with size = 4096
+Total Striped 16 Threaded time: 0.448006 seconds
+Total Sequential time: 0.163280 seconds
+Total Transactional 16 Threaded time: 0.886437 seconds
+Total Synchronized 16 Threaded time: 2.713423 seconds
+Running with size = 32768
+Total Striped 16 Threaded time: 0.120286 seconds
+Total Sequential time: 0.190327 seconds
+Total Transactional 16 Threaded time: 0.900787 seconds
+Total Synchronized 16 Threaded time: 2.892626 seconds
 Running with size = 262144
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-HERE1
-HERE2
-Running with size = 32768
-HERE1
-HERE2
-HERE1
-HERE3
-HERE1
-Total Striped 16 Threaded time: 0.775083 seconds
-Total Book 16 Threaded time: 0.328305 seconds
-Total Sets 16 Threaded time: 0.345371 seconds
-Total Sequential time: 1.031274 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.776320 seconds
-Total Book 16 Threaded time: 0.313628 seconds
-Total Sets 16 Threaded time: 0.364010 seconds
-Total Sequential time: 1.051558 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.806109 seconds
-Total Book 16 Threaded time: 0.315993 seconds
-Total Sets 16 Threaded time: 0.349474 seconds
-Total Sequential time: 1.063939 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.781742 seconds
-Total Book 16 Threaded time: 0.323010 seconds
-Total Sets 16 Threaded time: 0.355806 seconds
-Total Sequential time: 0.969487 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.779819 seconds
-Total Book 16 Threaded time: 0.318964 seconds
-Total Sets 16 Threaded time: 0.351974 seconds
-Total Sequential time: 0.978455 seconds
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.783813 seconds
-Total Book 16 Threaded time: 0.319464 seconds
-Total Sets 16 Threaded time: 0.363025 seconds
-Total Sequential time: 0.971838 seconds
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.779291 seconds
-Total Book 16 Threaded time: 0.315761 seconds
-Total Sets 16 Threaded time: 0.360368 seconds
-Total Sequential time: 1.098105 seconds
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.786169 seconds
-Total Book 16 Threaded time: 0.324626 seconds
-Total Sets 16 Threaded time: 0.377956 seconds
-Total Sequential time: 1.100287 seconds
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.799157 seconds
-Total Book 16 Threaded time: 0.326395 seconds
-Total Sets 16 Threaded time: 0.365052 seconds
-Total Sequential time: 0.966148 seconds
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.778993 seconds
-Total Book 16 Threaded time: 0.327879 seconds
-Total Sets 16 Threaded time: 0.385374 seconds
-Total Sequential time: 1.051557 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.784037 seconds
-Total Book 16 Threaded time: 0.317170 seconds
-Total Sets 16 Threaded time: 0.352322 seconds
-Total Sequential time: 0.961051 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.781246 seconds
-Total Book 16 Threaded time: 0.322679 seconds
-Total Sets 16 Threaded time: 0.406300 seconds
-Total Sequential time: 1.081882 seconds
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.809566 seconds
-Total Book 16 Threaded time: 0.313651 seconds
-Total Sets 16 Threaded time: 0.351654 seconds
-Total Sequential time: 0.935650 seconds
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.797126 seconds
-Total Book 16 Threaded time: 0.321718 seconds
-Total Sets 16 Threaded time: 0.353360 seconds
-Total Sequential time: 1.037789 seconds
-Running with size = 32768
-Here tjo
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.780607 seconds
-Total Book 16 Threaded time: 0.322398 seconds
-Total Sets 16 Threaded time: 0.356872 seconds
-Total Sequential time: 0.958627 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.777648 seconds
-Total Book 16 Threaded time: 0.309027 seconds
-Total Sets 16 Threaded time: 0.357262 seconds
-Total Sequential time: 0.918812 seconds
-Running with size = 32768
-Running with size = 32768
-Total Striped 16 Threaded time: 0.785757 seconds
-Total Book 16 Threaded time: 0.311630 seconds
-Total Sets 16 Threaded time: 0.354590 seconds
-Total Sequential time: 0.896509 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.780572 seconds
-Total Book 16 Threaded time: 0.314651 seconds
-Total Sets 16 Threaded time: 0.358454 seconds
-Total Sequential time: 0.966194 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.810450 seconds
-Total Book 16 Threaded time: 0.318806 seconds
-Total Sets 16 Threaded time: 0.358384 seconds
-Total Sequential time: 0.979627 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.796647 seconds
-Total Book 16 Threaded time: 0.315216 seconds
-Total Sets 16 Threaded time: 0.359849 seconds
-Total Sequential time: 0.971055 seconds
-Running with size = 32768
-Total Striped 16 Threaded time: 0.785472 seconds
-Total Book 16 Threaded time: 0.324128 seconds
-Total Sets 16 Threaded time: 0.355163 seconds
-Total Sequential time: 0.894875 seconds
-Running with size = 32768
-Here tjo
-Running with size = 32768
-Total Striped 16 Threaded time: 0.784754 seconds
-Total Book 16 Threaded time: 0.319894 seconds
-Total Sets 16 Threaded time: 0.352850 seconds
-Total Sequential time: 0.981523 seconds
-Running with size = 32768
-Here tjo
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Running with size = 32768
-Here tjo
+Total Striped 16 Threaded time: 0.089252 seconds
+Total Sequential time: 0.183875 seconds
+Total Transactional 16 Threaded time: 0.946218 seconds
+Total Synchronized 16 Threaded time: 3.090924 seconds
+Running with size = 1048576
+Total Striped 16 Threaded time: 0.098599 seconds
+Total Sequential time: 0.179641 seconds
+Total Transactional 16 Threaded time: 1.049197 seconds
+Total Synchronized 16 Threaded time: 3.216714 seconds
+Running with size = 4194304
+Total Striped 16 Threaded time: 0.097685 seconds
+Total Sequential time: 0.258801 seconds
+Total Transactional 16 Threaded time: 1.103578 seconds
+Total Synchronized 16 Threaded time: 3.320377 seconds
