@@ -13,8 +13,12 @@
 #include <thread>
 
 
-#define TESTAMT 33554432
+// #define TESTAMT 33554432
+#define TESTAMT 65536 * 64
 #define THREADS 16
+#define CONTAINSPER 8
+#define ADDSPER 9
+
 
 std::chrono::duration<double> times[THREADS];
 int deltas[THREADS];
@@ -24,6 +28,7 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size);
 void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size);
 void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size);
 void do_workTransactional(TransactionalCuckoo<int>& cuckoo, int threadNum, int iter, int size);
+void do_workSynch(SynchronizedCuckoo<int>& cuckoo, int threadNum, int iter, int size);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -40,6 +45,7 @@ int main(int argc, char* argv[]) {
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
     TransactionalCuckoo<int> transactional(size);
+    SynchronizedCuckoo<int> synchronize(size);
     // ConcurrentBook<int> cuckooBook(size);
     // SetsConcurrent<int> cuckooSets(size);
     // LogicalCuckoo<int> cuckooLogical(size);
@@ -50,7 +56,7 @@ int main(int argc, char* argv[]) {
     // cuckooSets.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     // cuckooLogical.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     cuckooSeq.populate(startingSize, [size]() { return generateRandomVal(size*4); });
-    
+    synchronize.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     std::thread threads[THREADS];
     int resultSize1 = startingSize;
     for(int i = 0; i < THREADS; i++){
@@ -114,9 +120,9 @@ int main(int argc, char* argv[]) {
     auto begin1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
         int num = generateRandomInteger(1, 10);
-        if (num <= 8) {
+        if (num <= CONTAINSPER) {
             cuckooSeq.contains(generateRandomVal(size));
-        } else if (num <= 9) {
+        } else if (num <= ADDSPER) {
             if(cuckooSeq.add(generateRandomVal(size))){
                 resultSize++;
             }
@@ -159,6 +165,32 @@ int main(int argc, char* argv[]) {
 
     printf("Total Transactional %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
+
+    for(int i = 0; i < THREADS; i++){
+        deltas[i] = 0;
+        threads[i] = std::thread(do_workSynch, std::ref(synchronize), i, TESTAMT/THREADS, size);
+    }
+
+    for (auto &th : threads){
+        th.join();
+    }
+    int resultSize4 = startingSize;
+    maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+            resultSize4 += deltas[i];
+        }
+    }
+
+    // if(resultSize3 == transactional.size()){
+    //     std::cout << "SUCCESS" << std::endl;
+    // }
+    // else{
+    //     std::cout << "EXPECTED: " << resultSize3 << " ACTUAL: " << transactional.size()  << std::endl;
+    // }
+
+    printf("Total Synchronized %d Threaded time: %lf seconds\n", THREADS, maxTime);
     return 0;
 }
 
@@ -181,9 +213,9 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
-        if (num <= 8) {
+        if (num <= CONTAINSPER) {
             cuckoo.contains(generateRandomVal(size), false);
-        } else if (num <= 9) {
+        } else if (num <= ADDSPER) {
             if(cuckoo.add(generateRandomVal(size))){
                 deltas[threadNum]++;
             }
@@ -241,9 +273,29 @@ void do_workTransactional(TransactionalCuckoo<int>& cuckoo, int threadNum, int i
     auto begin = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
-        if (num <= 8) {
+        if (num <= CONTAINSPER) {
             cuckoo.contains(generateRandomVal(size));
-        } else if (num <= 9) {
+        } else if (num <= ADDSPER) {
+            if(cuckoo.add(generateRandomVal(size))){
+                deltas[threadNum]++;
+            }
+        } else {
+            if(cuckoo.remove(generateRandomVal(size))){
+                deltas[threadNum]--;
+            }
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    times[threadNum] = exec_time_i;
+}
+void do_workSynch(SynchronizedCuckoo<int>& cuckoo, int threadNum, int iter, int size){
+    auto begin = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iter; i++) {
+        int num = generateRandomInteger(1, 10);
+        if (num <= CONTAINSPER) {
+            cuckoo.contains(generateRandomVal(size));
+        } else if (num <= ADDSPER) {
             if(cuckoo.add(generateRandomVal(size))){
                 deltas[threadNum]++;
             }
