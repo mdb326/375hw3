@@ -38,13 +38,13 @@ int main(int argc, char* argv[]) {
 
     SequentialCuckoo<int> cuckooSeq(size);
     ConcurrentCuckoo<int> cuckoo(size);
-    // TransactionalCuckoo<int> transactional(size);
+    TransactionalCuckoo<int> transactional(size);
     // ConcurrentBook<int> cuckooBook(size);
     // SetsConcurrent<int> cuckooSets(size);
     // LogicalCuckoo<int> cuckooLogical(size);
     int startingSize = size/2;
     cuckoo.populate(startingSize, [size]() { return generateRandomVal(size*4); });
-    // transactional.populate(startingSize, [size]() { return generateRandomVal(size*4); });
+    transactional.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     // cuckooBook.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     // cuckooSets.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     // cuckooLogical.populate(startingSize, [size]() { return generateRandomVal(size*4); });
@@ -132,22 +132,30 @@ int main(int argc, char* argv[]) {
     }
     printf("Total Sequential time: %lf seconds\n", exec_time_i);
 
-    // for(int i = 0; i < THREADS; i++){
-    //     threads[i] = std::thread(do_workTransactional, std::ref(transactional), i, TESTAMT/THREADS, size);
-    // }
+    for(int i = 0; i < THREADS; i++){
+        deltas[i] = 0;
+        threads[i] = std::thread(do_workTransactional, std::ref(transactional), i, TESTAMT/THREADS, size);
+    }
 
-    // for (auto &th : threads){
-    //     th.join();
-    // }
+    for (auto &th : threads){
+        th.join();
+    }
 
-    // maxTime = 0.0;
-    // for(int i = 0; i < THREADS; i++){
-    //     if(times[i].count() > maxTime){
-    //         maxTime = times[i].count();
-    //     }
-    // }
+    maxTime = 0.0;
+    for(int i = 0; i < THREADS; i++){
+        if(times[i].count() > maxTime){
+            maxTime = times[i].count();
+        }
+    }
 
-    // printf("Total Transactional %d Threaded time: %lf seconds\n", THREADS, maxTime);
+    if(resultSize1 == cuckoo.size()){
+        std::cout << "SUCCESS" << std::endl;
+    }
+    else{
+        std::cout << "EXPECTED: " << resultSize1 << " ACTUAL: " << cuckoo.size()  << std::endl;
+    }
+
+    printf("Total Transactional %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     return 0;
 }
