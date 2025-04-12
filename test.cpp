@@ -16,6 +16,7 @@
 #define THREADS 16
 
 std::chrono::duration<double> times[THREADS];
+int deltas[THREADS];
 int generateRandomVal(int size);
 int generateRandomInteger(int min, int max);
 void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size);
@@ -42,11 +43,11 @@ int main(int argc, char* argv[]) {
     // SetsConcurrent<int> cuckooSets(size);
     // LogicalCuckoo<int> cuckooLogical(size);
     int startingSize = size/2;
-    // cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    // transactional.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    // cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    // cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    cuckoo.populate(startingSize, [size]() { return generateRandomVal(size*4); });
+    // transactional.populate(startingSize, [size]() { return generateRandomVal(size*4); });
+    // cuckooBook.populate(startingSize, [size]() { return generateRandomVal(size*4); });
+    // cuckooSets.populate(startingSize, [size]() { return generateRandomVal(size*4); });
+    // cuckooLogical.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     cuckooSeq.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     
     std::thread threads[THREADS];
@@ -64,6 +65,7 @@ int main(int argc, char* argv[]) {
         if(times[i].count() > maxTime){
             maxTime = times[i].count();
         }
+        resultSize1 += deltas[i];
     }
 
     if(resultSize1 == cuckoo.size()){
@@ -172,9 +174,13 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
         if (num <= 8) {
             cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size));
+            if(cuckoo.add(generateRandomVal(size))){
+                deltas[threadNum]++;
+            }
         } else {
-            cuckoo.remove(generateRandomVal(size));
+            if(cuckoo.remove(generateRandomVal(size))){
+                deltas[threadNum]--;
+            }
         }
     }
     auto end = std::chrono::high_resolution_clock::now();

@@ -161,6 +161,7 @@ bool ConcurrentCuckoo<T>::add(T value) {
         release(value);
         
         resize();
+        // return true;
     }
     
 }
