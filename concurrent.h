@@ -344,18 +344,17 @@ int ConcurrentCuckoo<T>::hash4(T value) const {
 
 template <typename T>
 int ConcurrentCuckoo<T>::size() {
-    int cnt = 0;
-    for (const std::optional<T>& val : table1) {
-        if (val.has_value()) {
-            cnt++;
-        }
+    size_t count = 0;
+
+    for (const auto& bucket : table1) {
+        if (bucket) count += bucket->size();
     }
-    for (const std::optional<T>& val : table2) {
-        if (val.has_value()) {
-            cnt++;
-        }
+
+    for (const auto& bucket : table2) {
+        if (bucket) count += bucket->size();
     }
-    return cnt;
+
+    return count;
 }
 
 template <typename T>

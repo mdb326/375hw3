@@ -74,7 +74,7 @@ bool SequentialCuckoo<T>::add(T value) {
     newHashes();
     resize(maxSize);
     add(x.value()); //guaranteed to have value since we just took it out
-    return false;
+    return true;
 }
 
 template <typename T>

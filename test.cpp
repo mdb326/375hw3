@@ -41,15 +41,16 @@ int main(int argc, char* argv[]) {
     // ConcurrentBook<int> cuckooBook(size);
     // SetsConcurrent<int> cuckooSets(size);
     // LogicalCuckoo<int> cuckooLogical(size);
-    int startingSize = size;
-    cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
+    int startingSize = size/2;
+    // cuckoo.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // transactional.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooBook.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooSets.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
     // cuckooLogical.populate(startingSize/2, [size]() { return generateRandomVal(size*4); });
-    cuckooSeq.populate(startingSize/3, [size]() { return generateRandomVal(size*4); });
+    cuckooSeq.populate(startingSize, [size]() { return generateRandomVal(size*4); });
     
     std::thread threads[THREADS];
+    int resultSize1 = startingSize;
     for(int i = 0; i < THREADS; i++){
         threads[i] = std::thread(do_work, std::ref(cuckoo), i, TESTAMT/THREADS, size);
     }
@@ -65,6 +66,12 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    if(resultSize1 == cuckoo.size()){
+        std::cout << "SUCCESS" << std::endl;
+    }
+    else{
+        std::cout << "EXPECTED: " << resultSize1 << " ACTUAL: " << cuckoo.size()  << std::endl;
+    }
     printf("Total Striped %d Threaded time: %lf seconds\n", THREADS, maxTime);
 
     // for(int i = 0; i < THREADS; i++){
@@ -100,21 +107,27 @@ int main(int argc, char* argv[]) {
     // }
 
     // printf("Total Sets %d Threaded time: %lf seconds\n", THREADS, maxTime);
-
+    int resultSize = startingSize;
     auto begin1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < TESTAMT; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
             cuckooSeq.contains(generateRandomVal(size));
         } else if (num <= 9) {
-            cuckooSeq.add(generateRandomVal(size));
+            if(cuckooSeq.add(generateRandomVal(size))){
+                resultSize++;
+            }
         } else {
-            cuckooSeq.remove(generateRandomVal(size));
+            if(cuckooSeq.remove(generateRandomVal(size))){
+                resultSize--;
+            }
         }
     }
     auto end1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> exec_time_i = std::chrono::duration_cast<std::chrono::duration<double>>(end1 - begin1);
-
+    if(resultSize != cuckooSeq.size()){
+        std::cout << "EXPECTED: " << resultSize << " ACTUAL: " << cuckooSeq.size()  << std::endl;
+    }
     printf("Total Sequential time: %lf seconds\n", exec_time_i);
 
     // for(int i = 0; i < THREADS; i++){
@@ -157,11 +170,11 @@ void do_work(ConcurrentCuckoo<int>& cuckoo, int threadNum, int iter, int size){
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
-            cuckoo.contains(generateRandomVal(size*4), false);
+            cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
             cuckoo.add(generateRandomVal(size));
         } else {
-            cuckoo.remove(generateRandomVal(size*4));
+            cuckoo.remove(generateRandomVal(size));
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -173,11 +186,11 @@ void do_workBook(ConcurrentBook<int>& cuckoo, int threadNum, int iter, int size)
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
-            cuckoo.contains(generateRandomVal(size*4), false);
+            cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size*4));
+            cuckoo.add(generateRandomVal(size));
         } else {
-            cuckoo.remove(generateRandomVal(size*4));
+            cuckoo.remove(generateRandomVal(size));
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
@@ -189,11 +202,11 @@ void do_workSets(SetsConcurrent<int>& cuckoo, int threadNum, int iter, int size)
     for (int i = 0; i < iter; i++) {
         int num = generateRandomInteger(1, 10);
         if (num <= 8) {
-            cuckoo.contains(generateRandomVal(size*4), false);
+            cuckoo.contains(generateRandomVal(size), false);
         } else if (num <= 9) {
-            cuckoo.add(generateRandomVal(size*4));
+            cuckoo.add(generateRandomVal(size));
         } else {
-            cuckoo.remove(generateRandomVal(size*4));
+            cuckoo.remove(generateRandomVal(size));
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
