@@ -199,6 +199,9 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
 
     for (int round = 0; round < LIMIT; round++) {
         auto& iSet = *table1[hi]; // Select table based on `i`
+        if(i == 1){
+            iSet = *table2[hi];
+        }
         if (iSet.empty()) return false; // Prevent accessing an empty bucket
         T value = iSet.front();
         acquire(value);
@@ -208,6 +211,9 @@ bool ConcurrentCuckoo<T>::relocate(int i, int hi) {
         }
 
         auto& jSet = *table2[hj];
+        if(i == 1){
+            jSet = *table1[hj];
+        }
 
         auto it = std::find(iSet.begin(), iSet.end(), value);
         if (it != iSet.end()) {
